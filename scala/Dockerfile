@@ -8,16 +8,13 @@ WORKDIR /app
 COPY build.sbt .
 COPY project ./project
 
-# Download dependencies
-# The `update` task downloads all dependencies, which can then be cached.
-RUN sbt update
-
 # Copy source code and perform the final build
 COPY src ./src
+# RUN sbt assembly
 RUN sbt assembly
 
 # Stage 2: The Runtime Stage
-FROM eclipse-temurin:17-jre-focal
+FROM eclipse-temurin:17-jre-alpine
 
 # Set the working directory
 WORKDIR /app
