@@ -24,10 +24,21 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "com.example"
 ThisBuild / organizationName := "example"
 
+// lazy val root = (project in file("."))
+//   .enablePlugins(JvmPlugin, AssemblyPlugin)
+//   .settings(
+//     name := "scala",
+//     libraryDependencies += munit % Test,
+//     assembly / assemblyJarName := s"${name.value}-assembly-${version.value}.jar"
+//   )
 lazy val root = (project in file("."))
   .enablePlugins(JvmPlugin, AssemblyPlugin)
   .settings(
     name := "scala",
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % "1.7.32",
+      "ch.qos.logback" % "logback-classic" % "1.2.11"
+    ),
     libraryDependencies += munit % Test,
     assembly / assemblyJarName := s"${name.value}-assembly-${version.value}.jar"
   )

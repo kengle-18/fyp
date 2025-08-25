@@ -4,13 +4,17 @@ FROM hseeberger/scala-sbt:17.0.2_1.6.2_2.13.8 AS builder
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the build files and source code
+# Copy build definition files first to leverage build cache
 COPY build.sbt .
 COPY project ./project
-COPY src ./src
 
-# Use sbt to compile the code and create a fat JAR (an assembly)
-RUN sbt clean assembly
+# Download dependencies
+# The `update` task downloads all dependencies, which can then be cached.
+RUN sbt update
+
+# Copy source code and perform the final build
+COPY src ./src
+RUN sbt assembly
 
 # Stage 2: The Runtime Stage
 FROM eclipse-temurin:17-jre-focal
