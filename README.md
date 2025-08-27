@@ -27,6 +27,9 @@ docker compose down
 <!-- format -->
 sbt scalafmtAll
 
+<!-- check EOF LF or CRLF -->
+git ls-files --eol
+
 
 What’s META-INF/services?
 
