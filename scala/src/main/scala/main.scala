@@ -11,7 +11,7 @@
 
 package com.example
 
-import io.grpc.{Server, ServerBuilder, ManagedChannel, ManagedChannelBuilder}
+import io.grpc.{ManagedChannel, ManagedChannelBuilder, Server, ServerBuilder}
 import scala.concurrent.{ExecutionContext, Future}
 import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
@@ -22,9 +22,8 @@ import com.example.base._ // adjust based on the generated folder
 // 1️⃣ Server Implementation
 class GreeterImpl extends GreeterGrpc.Greeter {
 
-  override def sayHello(request: HelloRequest): Future[HelloReply] = {
+  override def sayHello(request: HelloRequest): Future[HelloReply] =
     Future.successful(HelloReply(message = s"Hello, ${request.name}!"))
-  }
 }
 
 // 2️⃣ gRPC Server
@@ -46,6 +45,7 @@ class GrpcServer(executionContext: ExecutionContext) {
 
 // 3️⃣ gRPC Client
 class GrpcClient(host: String, port: Int) {
+
   val channel: ManagedChannel = ManagedChannelBuilder
     .forAddress(host, port)
     .usePlaintext()
@@ -63,9 +63,19 @@ class GrpcClient(host: String, port: Int) {
   }
 }
 
+class Test {
+
+  def test(): Unit =
+    println("test")
+
+  def abc(): Unit =
+    println("function abc called")
+}
+
 // 4️⃣ Main Application
 object Main extends App {
   private val logger = LoggerFactory.getLogger(getClass)
+  private val test = new Test()
 
   val serverExecutionContext =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
@@ -77,6 +87,14 @@ object Main extends App {
   try {
     // logger.info("Enter your name:")
     val name = if (args.nonEmpty) args(0) else "DockerUser"
+    if (args(0).nonEmpty) {
+      logger.info(s"Name from args0: ${args(0)}")
+      test.test()
+    }
+    if (args(1).nonEmpty) {
+      logger.info(s"Name from args1: ${args(1)}")
+      test.abc()
+    }
     logger.info(s"Hello, $name!")
     client.greet(name)
   } finally {

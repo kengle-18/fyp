@@ -11,7 +11,7 @@ COPY project ./project
 RUN mkdir -p src/main/scala
 
 # Download dependencies
-RUN sbt update compile
+RUN sbt compile
 
 # Create directories for sbt/ivy/cache
 RUN mkdir -p /root/.ivy2 /root/.sbt /root/.cache
