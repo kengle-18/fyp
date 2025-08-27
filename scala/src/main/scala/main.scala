@@ -36,11 +36,11 @@ class GrpcServer(executionContext: ExecutionContext) {
   def start(): Unit = {
     server.start()
     println(s"Server started, listening on ${server.getPort}")
-    sys.addShutdownHook {
-      println("*** shutting down gRPC server ***")
-      stop()
-      println("*** server shut down")
-    }
+    // sys.addShutdownHook {
+    //   println("*** shutting down gRPC server ***")
+    //   stop()
+    //   println("*** server shut down")
+    // }
   }
 
   def stop(): Unit = server.shutdown()
@@ -74,13 +74,14 @@ object Main extends App {
   val client = new GrpcClient("localhost", 50051)
 
   try {
-    logger.info("Enter your name:")
-    val name = scala.io.StdIn.readLine()
+    // logger.info("Enter your name:")
+    val name = if (args.nonEmpty) args(0) else "DockerUser"
     logger.info(s"Hello, $name!")
     client.greet(name)
   } finally {
     logger.info(s"end")
     client.shutdown()
     server.stop()
+    System.exit(0)
   }
 }

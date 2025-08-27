@@ -19,6 +19,7 @@ docker run --rm cpp-app
 <!-- build wihout cache  -->
 docker compose build --no-cache
 <!-- Starts container -->
+remains running 
 docker compose up --build
 <!-- shut down -->
 docker compose down
