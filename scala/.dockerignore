@@ -1,0 +1,18 @@
+# Ignore local build artifacts
+target/
+.sbt/
+.bsp/
+.sbtn/
+project/target/
+
+# Ignore IDE/editor files
+.idea/
+*.iml
+*.log
+*.DS_Store
+
+# Ignore local sbt caches (optional, may speed up Docker context transfer)
+# ~/.ivy2/ and ~/.coursier/ are usually outside project folder
+
+# Ignore Dockerfile copies of artifacts you don't need
+*.jar

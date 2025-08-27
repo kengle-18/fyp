@@ -1,0 +1,19 @@
+services:
+  python-app:
+    build: ./python
+    container_name: python-app
+    command: python hello.py # The command to run the application
+
+  scala-app:
+    build: ./scala
+    container_name: scala-app
+    depends_on:
+      - python-app
+    command: java -jar scala-assembly-0.1.0-SNAPSHOT.jar
+
+  cpp-app:
+    build: ./cpp
+    container_name: cpp-app
+    command: ./hello-cpp
+    depends_on:
+      - scala-app
