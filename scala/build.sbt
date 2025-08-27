@@ -75,7 +75,8 @@ lazy val root = (project in file("."))
       "ch.qos.logback" % "logback-classic" % "1.2.11",
       "com.thesamet.scalapb" %% "scalapb-runtime" % scalapbVersion,
       "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion,
-      "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
+      // "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
+      "io.grpc" % "grpc-netty-shaded" % grpcJavaVersion,
       "io.grpc" % "grpc-protobuf" % scalapb.compiler.Version.grpcJavaVersion,
       "io.grpc" % "grpc-stub" % scalapb.compiler.Version.grpcJavaVersion,
     ),
@@ -89,11 +90,25 @@ lazy val root = (project in file("."))
     libraryDependencies += munit % Test,
     assembly / assemblyJarName := s"${name.value}-assembly-${version.value}.jar",
     // These merge strategies are necessary to avoid conflicts when creating a single fat JAR
+    // assembly / assemblyMergeStrategy := {
+    //   case PathList("META-INF", "io.netty.versions.properties") =>
+    //     MergeStrategy.first
+    //   case PathList("META-INF", xs @ _*) =>
+    //     MergeStrategy.discard
+    //   case PathList("module-info.class") =>
+    //     MergeStrategy.discard
+    //   case x =>
+    //     val oldStrategy = (assembly / assemblyMergeStrategy).value
+    //     oldStrategy(x)
+    // }
+
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", "io.netty.versions.properties") =>
         MergeStrategy.first
+      case PathList("META-INF", "services", xs @ _*) =>
+        MergeStrategy.concat    // ✅ keep ServiceLoader entries
       case PathList("META-INF", xs @ _*) =>
-        MergeStrategy.discard
+        MergeStrategy.discard   // still discard other META-INF junk
       case PathList("module-info.class") =>
         MergeStrategy.discard
       case x =>

@@ -79,6 +79,7 @@ object Main extends App {
     logger.info(s"Hello, $name!")
     client.greet(name)
   } finally {
+    logger.info(s"end")
     client.shutdown()
     server.stop()
   }
