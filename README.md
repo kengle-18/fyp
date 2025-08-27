@@ -24,6 +24,9 @@ docker compose up --build
 <!-- shut down -->
 docker compose down
 
+<!-- format -->
+sbt scalafmtAll
+
 
 What’s META-INF/services?
 
