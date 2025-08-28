@@ -26,6 +26,19 @@ cmake --build build
 For windows
 cmake --build build --config Release
 
+build 
+cmake --build build --target protobuf
+
+<!-- Testing -->
+# 1. Clean build directory (recommended)
+rm -r build
+
+# 2. Configure
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+# 3. Build (Release or Debug)
+cmake --build build --config Release
+
 <!-- build wihout cache  -->
 docker compose build --no-cache
 <!-- Starts container -->
