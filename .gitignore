@@ -2,3 +2,13 @@
 /.bsp
 /.metals
 /.scala-build
+
+cpp/build/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+*.o
+*.obj
+*.exe
+*.log

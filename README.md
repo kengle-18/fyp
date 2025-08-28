@@ -16,6 +16,16 @@ in cpp
 docker build -t cpp-app .
 docker run --rm cpp-app
 
+<!-- build in current dir of the cmake under /build-->
+cmake -S . -B build
+Download takes 300s
+
+No diff for mac/linux 
+cmake --build build
+
+For windows
+cmake --build build --config Release
+
 <!-- build wihout cache  -->
 docker compose build --no-cache
 <!-- Starts container -->
