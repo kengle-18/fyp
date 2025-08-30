@@ -26,18 +26,150 @@ cmake --build build
 For windows
 cmake --build build --config Release
 
-build 
-cmake --build build --target protobuf
+fetch wghat
+cmake --build build --target help
 
-<!-- Testing -->
+<!-- Build exe for later -->
+in fyp\cpp\build\_deps\grpc-build
+cmake ../grpc-src -G "Visual Studio 17 2022" -A x64 -DgRPC_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_STANDARD=17
+
+cmake ../grpc-src -G "Visual Studio 17 2022" -A x64 -DgRPC_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_STANDARD=17
+-DABSL_BUILD_TESTING=OFF
+-DABSL_BUILD_TEST_HELPERS=OFF -DABSL_USE_GOOGLETEST_HEAD=OFF
+
+in the grpc-build --> 
+cmake --build . --target grpc_cpp_plugin --config Release
+
+<!-- Try for protoc?-->
+cd C:\Users\user\Downloads\fyp\cpp\build\_deps\protobuf-build
+
+cmake ../protobuf-src -G "Visual Studio 17 2022" -A x64 -Dprotobuf_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_STANDARD=17 -DABSL_BUILD_TESTING=OFF -DABSL_BUILD_TEST_HELPERS=OFF
+-DABSL_USE_GOOGLETEST_HEAD=OFF
+
+cmake ../protobuf-src `
+  -G "Visual Studio 17 2022" `
+  -A x64 `
+  -Dprotobuf_BUILD_TESTS=OFF `
+  -DBUILD_SHARED_LIBS=ON `
+  -DCMAKE_CXX_STANDARD=17 `
+  -DABSL_BUILD_TESTING=OFF `
+  -DABSL_BUILD_TEST_HELPERS=OFF `
+  -DABSL_USE_GOOGLETEST_HEAD=OFF `
+  
+
+cmake ../protobuf-src `
+  -G "Visual Studio 17 2022" `
+  -A x64 `
+  -Dprotobuf_BUILD_TESTS=OFF `
+  -DBUILD_SHARED_LIBS=ON `
+  -DCMAKE_CXX_STANDARD=17 `
+  -DABSL_BUILD_TESTING=OFF `
+  -DBUILD_TESTING=OFF `
+  -DABSL_BUILD_TEST_HELPERS=OFF
+
+in protobuf-build
+cmake --build . --target protoc --config Release
+
+<!-- Need to test -->
+in cpp
+<!-- Create the grpc -->
+cmake --build build/_deps/grpc-build --config Release --target grpc_cpp_plugin
+<!-- Create the protoc -->
+cmake --build build/_deps/protobuf-build --config Release --target protoc
+<!--  -->
+
+<!-- For build -->
+<!-- Cross-platform for firsdt build--> 
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+<!-- Then final -->
+cmake --build build --config Release
+
+cmake --build build/_deps/grpc-build --config Release --target grpc_cpp_plugin
+
+<!-- Testing for protobuf -->
 # 1. Clean build directory (recommended)
 rm -r build
 
-# 2. Configure
+# 2. Configure for windows
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 
 # 3. Build (Release or Debug)
 cmake --build build --config Release
+
+<!-- Full manaul command -->
+Need to add path
+$env:PATH += ";C:\Users\user\Downloads\fyp\cpp\build\_deps\protobuf-build\bin\Release"
+
+Need to move all dll needed inclduing C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe
+
+File Type: EXECUTABLE IMAGE
+
+  Image has the following dependencies:
+
+    grpc_plugin_support.dll
+    libprotoc.dll
+    libprotobuf.dll
+    abseil_dll.dll
+    MSVCP140.dll
+    VCRUNTIME140.dll
+    VCRUNTIME140_1.dll
+    api-ms-win-crt-runtime-l1-1-0.dll
+    api-ms-win-crt-heap-l1-1-0.dll
+    api-ms-win-crt-math-l1-1-0.dll
+    api-ms-win-crt-stdio-l1-1-0.dll
+    api-ms-win-crt-locale-l1-1-0.dll
+    KERNEL32.dll
+
+  Summary
+
+from C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release to C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\bin\Release
+
+$env:PATH = "C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\bin\Release;" + $env:PATH
+
+you are prepending that folder to the existing PATH.
+$env:PATH += ";C:\Users\user\Downloads\fyp\cpp\build\_deps\abseil-cpp-build\absl"
+
+Check paths
+
+C:\Users\user\Downloads\fyp\cpp\build\_deps\protobuf-build\Release\protoc.exe `
+  -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf `
+  --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated `
+  --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated `
+  --plugin=protoc-gen-grpc=C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe `
+  C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
+
+
+Fomrt
+protoc -I path/to/protos --grpc_out=output_dir --plugin=protoc-gen-grpc=grpc_cpp_plugin your.proto
+
+Shortcut full
+protoc -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf `
+       --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated `
+       --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated `
+       --plugin=protoc-gen-grpc=C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe `
+       C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
+
+C:\Users\user\Downloads\vcpkg\installed\x64-windows\tools\protobuf\protoc.exe -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated --plugin=protoc-gen-grpc=C:\Users\user\Downloads\vcpkg\installed\x64-windows\tools\grpc\grpc_cpp_plugin.exe C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
+
+C:\Users\user\Downloads\vcpkg\installed\x64-windows\tools\protobuf\protoc.exe -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated --plugin=protoc-gen-grpc=C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
+
+C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\third_party\protobuf\Release\protoc.exe -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated --plugin=protoc-gen-grpc=C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
+
+check paths in system
+$env:PATH -split ';'  
+
+
+<!-- Final -->
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 
+
+then
+in C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\third_party\protobuf
+cmake --build C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\third_party\protobuf --config Release --target protoc
+
+
+cmake --build build --config Release
+
 
 <!-- build wihout cache  -->
 docker compose build --no-cache
