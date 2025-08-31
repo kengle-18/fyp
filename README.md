@@ -16,6 +16,16 @@ in cpp
 docker build -t cpp-app .
 docker run --rm cpp-app
 
+
+<!-- Final in cpp dir-->
+source is current cmake.txt dir, -B build --> build call build
+
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 
+
+cmake --build build --config Release
+
+
+
 <!-- build wihout cache  -->
 docker compose build --no-cache
 <!-- Starts container -->
@@ -23,6 +33,12 @@ remains running
 docker compose up --build
 <!-- shut down -->
 docker compose down
+
+<!-- format -->
+sbt scalafmtAll
+
+<!-- check EOF LF or CRLF -->
+git ls-files --eol
 
 
 What’s META-INF/services?
