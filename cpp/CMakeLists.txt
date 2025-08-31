@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Ensure all dependencies are built as static libraries
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libraries" FORCE)
-set(protobuf_BUILD_PROTOC_BINARIES ON)
+set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "" FORCE)
 
 set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(gRPC_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -25,31 +25,37 @@ set(gRPC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 set(ABSL_BUILD_TEST_HELPERS OFF CACHE BOOL "" FORCE)
 
-set(protobuf_BUILD_PROTOC_BINARIES ON) 
 
 include(FetchContent)
 
 # -------------------------------
 # 1️⃣ Fetch Abseil (needed by gRPC)
 # -------------------------------
-FetchContent_Declare(
-    abseil-cpp
-    GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-    GIT_TAG 20250127.1
-)
-FetchContent_MakeAvailable(abseil-cpp)
+
+# FetchContent_Declare(
+#     abseil-cpp
+#     GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+#     GIT_TAG 20250127.1
+# )
+
+# set(ABSL_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+# set(ABSL_BUILD_TEST_HELPERS OFF CACHE BOOL "" FORCE)
+# set(ABSL_USE_GOOGLETEST_HEAD OFF CACHE BOOL "" FORCE)
+# set(absl_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+# FetchContent_MakeAvailable(abseil-cpp)
 
 # -------------------------------
 # 2️⃣ Fetch Protobuf
 # -------------------------------
-set(protobuf_BUILD_SHARED_LIBS OFF)
 FetchContent_Declare(
     protobuf
     GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
     GIT_TAG v5.29.5
     SOURCE_SUBDIR cmake
 )
-set(protobuf_BUILD_TESTS OFF)
+set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(protobuf)
 
 # -------------------------------
@@ -65,21 +71,36 @@ FetchContent_Declare(
 set(gRPC_BUILD_TESTS OFF)
 FetchContent_MakeAvailable(grpc)
 
+get_filename_component(BUILD_DEPS_DIR "${grpc_SOURCE_DIR}" PATH)
+message(STATUS "📌 BUILD_DEPS_DIR: ${BUILD_DEPS_DIR}")
+
+message(STATUS "📌 grpc_SOURCE_DIR: ${grpc_SOURCE_DIR}")
+message(STATUS "📌 grpc_BINARY_DIR: ${grpc_BINARY_DIR}")
+
+
+set(protobuf_SOURCE_DIR "${protobuf_SOURCE_DIR}")
+message(STATUS "📌 protobuf_SOURCE_DIR: ${protobuf_SOURCE_DIR}")
+
+set(protobuf_BINARY_DIR "${protobuf_BINARY_DIR}")
+message(STATUS "📌 protobuf_BINARY_DIR: ${protobuf_BINARY_DIR}")
+
+
 add_custom_target(build_protoc
     COMMAND ${CMAKE_COMMAND} 
-            -S ${protobuf_SOURCE_DIR} 
-            -B ${protobuf_BINARY_DIR} 
-            -G "Visual Studio 17 2022" 
+            -S ${protobuf_SOURCE_DIR}            # source folder of protobuf
+            -B ${protobuf_BINARY_DIR}            # build folder (FetchContent binary dir)
+            -G "Visual Studio 17 2022"      # generator
             -A x64
-            -Dprotobuf_BUILD_TESTS=OFF
-            -DBUILD_SHARED_LIBS=OFF
+            -DBUILD_SHARED_LIBS=OFF          # static build
             -DCMAKE_CXX_STANDARD=17
             -DABSL_BUILD_TESTING=OFF
             -DABSL_BUILD_TEST_HELPERS=OFF
             -DABSL_USE_GOOGLETEST_HEAD=OFF
+            -Dprotobuf_BUILD_TESTS=OFF
     COMMAND ${CMAKE_COMMAND} --build ${protobuf_BINARY_DIR} --target protoc --config $<CONFIG>
     COMMENT "Building protoc executable via custom target"
 )
+
 add_custom_target(build_grpc_plugin
     COMMAND ${CMAKE_COMMAND} 
             -S ${grpc_SOURCE_DIR}            # source folder of grpc
@@ -96,27 +117,32 @@ add_custom_target(build_grpc_plugin
     COMMENT "Building grpc_cpp_plugin executable via custom target"
 )
 
-set(PROTOC_EXECUTABLE "${protobuf_BINARY_DIR}/$<CONFIG>/protoc${CMAKE_EXECUTABLE_SUFFIX}")
-set(GRPC_CPP_PLUGIN_EXECUTABLE "${grpc_BINARY_DIR}/$<CONFIG>/grpc_cpp_plugin${CMAKE_EXECUTABLE_SUFFIX}")
+# find_program(PROTOC_EXECUTABLE 
+#     NAMES protoc protoc.exe
+#     PATHS 
+#         # "${PROTOBUF_DEST_EXE_DIR}/Release"
+#         # "${PROTOBUF_DEST_EXE_DIR}/Debug" 
+#         # "${PROTOBUF_DEST_EXE_DIR}"
+#         # "${PROTOBUF_SRC_EXE_DIR}/Release"
+#         # "${PROTOBUF_SRC_EXE_DIR}/Debug"
+#         "C:/Users/user/Downloads/fyp/cpp/build/_deps/grpc-build/third_party/protobuf/Release"
+#     NO_DEFAULT_PATH
+# )
+
+set(PROTOC_EXECUTABLE "${grpc_BINARY_DIR}/third_party/protobuf/$<CONFIG>/protoc.exe")
+message(INFO "PROTOC_EXECUTABLE found at: ${PROTOC_EXECUTABLE}")
+
+set(GRPC_CPP_PLUGIN_EXECUTABLE "${grpc_BINARY_DIR}/$<CONFIG>/grpc_cpp_plugin.exe")
+message(INFO "GRPC_CPP_PLUGIN_EXECUTABLE found at: ${GRPC_CPP_PLUGIN_EXECUTABLE}")
+
+if(NOT EXISTS "${PROTOC_EXECUTABLE}")
+    message(WARNING "protoc executable not found at: ${PROTOC_EXECUTABLE}")
+endif()
 
 
-# 🔍 Debug: print all available targets after FetchContent
-get_property(allTargets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
-message(STATUS "📌 Available targets after FetchContent: ${allTargets}")
-
-
-# Ensure protoc and grpc_cpp_plugin are built
-# set(PROTOC_EXECUTABLE $<TARGET_FILE:protoc>)
-# set(GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
-
-# message(STATUS "PROTOC_EXECUTABLE: ${PROTOC_EXECUTABLE}")
-# message(STATUS "GRPC_CPP_PLUGIN_EXECUTABLE: ${GRPC_CPP_PLUGIN_EXECUTABLE}")
-
-# find_program(PROTOC_EXECUTABLE protoc HINTS ${protobuf_BINARY_DIR})
-# find_program(GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin HINTS ${grpc_BINARY_DIR})
-
-# message(STATUS "Using protoc: ${PROTOC_EXECUTABLE} : ${protobuf_BINARY_DIR}")
-# message(STATUS "Using grpc_cpp_plugin: ${GRPC_CPP_PLUGIN_EXECUTABLE}")
+if(NOT EXISTS "${GRPC_CPP_PLUGIN_EXECUTABLE}")
+    message(WARNING "grpc_cpp_plugin executable not found at: ${GRPC_CPP_PLUGIN_EXECUTABLE}")
+endif()
 
 
 # -------------------------------
@@ -135,39 +161,6 @@ file(GLOB PROTO_FILES "${PROTO_DIR}/*.proto")
 
 set(PROTO_GEN_SRCS "")
 
-# set(GRPC_CPP_PLUGIN_EXECUTABLE
-#     "${CMAKE_BINARY_DIR}/_deps/grpc-build/Release/grpc_cpp_plugin.exe"
-# )
-
-set(GRPC_CPP_PLUGIN_EXECUTABLE
-    "${CMAKE_BINARY_DIR}/_deps/grpc-build/Release/grpc_cpp_plugin.exe"
-)
-
-set(PROTOC_EXECUTABLE
-    "${CMAKE_BINARY_DIR}/_deps/protobuf-build/Release/protoc.exe"
-)
-
-# message(STATUS "📌 GRPC_CPP_PLUGIN_EXECUTABLE: ${GRPC_CPP_PLUGIN_EXECUTABLE}")
-# if(NOT EXISTS "${GRPC_CPP_PLUGIN_EXECUTABLE}")
-#     message(FATAL_ERROR "grpc_cpp_plugin not found at: ${GRPC_CPP_PLUGIN_EXECUTABLE}")
-# endif()
-
-# set(GRPC_CPP_PLUGIN_EXECUTABLE
-#     "${grpc_BINARY_DIR}/$<CONFIG>/grpc_cpp_plugin${CMAKE_EXECUTABLE_SUFFIX}"
-# )
-# message(STATUS "📌 GRPC_CPP_PLUGIN_EXECUTABLE: ${GRPC_CPP_PLUGIN_EXECUTABLE}")
-
-# add_custom_target(build_protoc
-#     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/_deps/protobuf-build --target protoc --config Release
-#     COMMENT "Building protoc executable"
-# )
-
-# # Build grpc_cpp_plugin
-# add_custom_target(build_grpc_plugin
-#     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/_deps/grpc-build --target grpc_cpp_plugin --config Release
-#     COMMENT "Building grpc_cpp_plugin executable"
-# )
-
 foreach(proto ${PROTO_FILES})
     get_filename_component(proto_name ${proto} NAME_WE)
 
@@ -178,31 +171,22 @@ foreach(proto ${PROTO_FILES})
     set(grpc_srcs "${GENERATED_DIR}/${proto_name}.grpc.pb.cc")
     set(grpc_hdrs "${GENERATED_DIR}/${proto_name}.grpc.pb.h")
 
-    add_custom_command(
-            OUTPUT ${proto_srcs} ${proto_hdrs} ${grpc_srcs} ${grpc_hdrs}
-            COMMAND ${PROTOC_EXECUTABLE} 
-                -I ${PROTO_DIR}
-                --cpp_out=${GENERATED_DIR}
-                --grpc_out=${GENERATED_DIR}
-                --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_EXECUTABLE}
-                ${proto}
-            DEPENDS ${proto} build_protoc build_grpc_plugin
-            COMMENT "Generating C++ and gRPC sources from ${proto}"
-            VERBATIM
-        )
+add_custom_command(
+    OUTPUT ${proto_srcs} ${proto_hdrs} ${grpc_srcs} ${grpc_hdrs}
+    COMMAND ${CMAKE_COMMAND} -E echo "Running protoc on ${proto}"
+    COMMAND ${CMAKE_COMMAND} -E echo "  Using PROTOC: ${PROTOC_EXECUTABLE}"
+    COMMAND ${CMAKE_COMMAND} -E echo "  Using GRPC plugin: ${GRPC_CPP_PLUGIN_EXECUTABLE}"
+    COMMAND ${PROTOC_EXECUTABLE}
+        -I ${PROTO_DIR}
+        --cpp_out=${GENERATED_DIR}
+        --grpc_out=${GENERATED_DIR}
+        --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_EXECUTABLE}
+        ${proto}
+    DEPENDS ${proto}
+    COMMENT "Generating C++ and gRPC sources from ${proto}"
+    VERBATIM
+)
 
-    # add_custom_command(
-    #     OUTPUT ${proto_srcs} ${proto_hdrs} ${grpc_srcs} ${grpc_hdrs}
-    #     COMMAND $<TARGET_FILE:protobuf::protoc>
-    #         -I ${PROTO_DIR}
-    #         --cpp_out=${GENERATED_DIR}
-    #         --grpc_out=${GENERATED_DIR}
-    #         --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc::grpc_cpp_plugin>
-    #         ${proto}
-    #     DEPENDS ${proto}
-    #     COMMENT "Generating C++ and gRPC sources from ${proto}"
-    #     VERBATIM
-    # )
     list(APPEND PROTO_GEN_SRCS ${proto_srcs} ${grpc_srcs})
 endforeach()
 
@@ -216,21 +200,23 @@ add_executable(hello_grpc
     ${PROTO_GEN_SRCS}
 )
 
+add_dependencies(hello_grpc build_protoc build_grpc_plugin)
+
 message(STATUS "📌 Final")
-target_include_directories(hello_grpc PRIVATE ${GENERATED_DIR})
+target_include_directories(hello_grpc 
+    PRIVATE 
+    ${GENERATED_DIR} 
+)
+
+add_library(protobuf_lib STATIC IMPORTED)
+
+# set_target_properties(protobuf_lib PROPERTIES
+#     IMPORTED_LOCATION "${grpc_BINARY_DIR}/third_party/protobuf/Release/libprotobuf.lib"
+#     INTERFACE_INCLUDE_DIRECTORIES "${grpc_SOURCE_DIR}/third_party/protobuf/src"
+# )
 
 target_link_libraries(hello_grpc
     PRIVATE
-    absl::base
-    grpc
     grpc++
     protobuf
-    libprotobuf
 )
-
-# target_link_libraries(hello_grpc
-#     PRIVATE
-#     grpc::grpc++
-#     protobuf::libprotobuf
-#     absl::base
-# )

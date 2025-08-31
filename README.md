@@ -154,6 +154,9 @@ C:\Users\user\Downloads\vcpkg\installed\x64-windows\tools\protobuf\protoc.exe -I
 
 C:\Users\user\Downloads\vcpkg\installed\x64-windows\tools\protobuf\protoc.exe -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated --plugin=protoc-gen-grpc=C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
 
+C:\Users\user\Downloads\fyp\cpp\build\_deps\protobuf-build\protoc.exe -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated --plugin=protoc-gen-grpc=C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
+
+
 C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\third_party\protobuf\Release\protoc.exe -I C:\Users\user\Downloads\fyp\scala\src\main\protobuf --cpp_out=C:\Users\user\Downloads\fyp\cpp\build\generated --grpc_out=C:\Users\user\Downloads\fyp\cpp\build\generated --plugin=protoc-gen-grpc=C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\Release\grpc_cpp_plugin.exe C:\Users\user\Downloads\fyp\scala\src\main\protobuf\base.proto
 
 check paths in system
@@ -163,12 +166,46 @@ $env:PATH -split ';'
 <!-- Final -->
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 
 
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+    -Dprotobuf_BUILD_TESTS=OFF `
+    -DgRPC_BUILD_TESTS=OFF `
+    -DABSL_BUILD_TESTING=OFF `
+    -DABSL_BUILD_TEST_HELPERS=OFF `
+    -Dprotobuf_BUILD_PROTOC_BINARIES=ON `
+    -Dprotobuf_BUILD_SHARED_LIBS=OFF `
+    -DgRPC_BUILD_SHARED_LIBS=OFF `
+    -DBUILD_SHARED_LIBS=OFF
+
 then
-in C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\third_party\protobuf
-cmake --build C:\Users\user\Downloads\fyp\cpp\build\_deps\grpc-build\third_party\protobuf --config Release --target protoc
+in 
+cd :\Users\user\Downloads\fyp\cpp\build\_deps\protobuf-build
+cmake ../protobuf-src `
+  -G "Visual Studio 17 2022" `
+  -A x64 `
+  -Dprotobuf_BUILD_TESTS=OFF `
+  -DBUILD_SHARED_LIBS=OFF `
+  -DCMAKE_CXX_STANDARD=17 `
+  -DABSL_BUILD_TESTING=OFF `
+  -DBUILD_TESTING=OFF `
+ -DABSL_BUILD_TEST_HELPERS=OFF
+
+cmake -S "..\protobuf-src" -B . `
+  -G "Visual Studio 17 2022" `
+  -A x64 `
+  -Dprotobuf_BUILD_TESTS=OFF `
+  -DBUILD_SHARED_LIBS=OFF `
+  -DCMAKE_CXX_STANDARD=17 `
+  -DABSL_BUILD_TESTING=OFF `
+  -DBUILD_TESTING=OFF `
+  -DABSL_BUILD_TEST_HELPERS=OFF `
+  -Dprotobuf_BUILD_PROTOC_BINARIES=ON
 
 
+cmake --build . --config Release --target protoc
+
+go back to cpp
 cmake --build build --config Release
+
 
 
 <!-- build wihout cache  -->
