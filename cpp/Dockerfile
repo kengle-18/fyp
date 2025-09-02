@@ -1,31 +1,49 @@
-# Stage 1: Build Environment
-# Use a base image with a C++ compiler (e.g., GCC)
-FROM gcc:12 AS builder
+# Multi-stage Docker build for gRPC C++ application
+FROM ubuntu:22.04 AS builder
 
-# Install cmake and other necessary build tools
-RUN apt-get update && apt-get install -y cmake
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy the source code and CMake build file
-COPY main.cpp .
+# Copy CMakeLists.txt first for better layer caching
 COPY CMakeLists.txt .
 
-# Compile the application using CMake
-RUN cmake . -DCMAKE_EXE_LINKER_FLAGS=-static
-RUN make
+# Create build directory and configure (this fetches and builds gRPC)
+# This step will be cached unless CMakeLists.txt changes
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-# Stage 2: Final Runtime Image
-# Use a minimal base image that is self-contained
-FROM alpine:latest
+# Copy source code
+COPY . .
 
-# Set the working directory
-WORKDIR /app
+# Build the application
+RUN cmake --build build --config Release -j$(nproc)
 
-# Copy the compiled executable from the builder stage
-# The name `hello-cpp` is defined in CMakeLists.txt
-COPY --from=builder /app/hello-cpp .
+# Runtime stage - much smaller final image
+FROM ubuntu:22.04 AS runtime
 
-# The command to run the executable when the container starts
-CMD ["./hello-cpp"]
+# Install only runtime dependencies if needed
+RUN apt-get update && apt-get install -y \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser
+
+# Copy only the built executable
+COPY --from=builder /app/build/Release/hello_grpc /usr/local/bin/hello_grpc
+
+# Set ownership and make executable
+RUN chmod +x /usr/local/bin/hello_grpc
+
+# Switch to non-root user
+USER appuser
+
+# Set the entrypoint
+ENTRYPOINT ["hello_grpc"]

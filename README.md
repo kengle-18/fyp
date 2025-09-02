@@ -16,6 +16,10 @@ in cpp
 docker build -t cpp-app .
 docker run --rm cpp-app
 
+<!-- Check platfrom -->
+docker inspect --format '{{.Os}}/{{.Architecture}}' your_image_names
+
+docker inspect --format '{{.Os}}/{{.Architecture}}' scala-app       --> linux/amd64
 
 <!-- Final in cpp dir-->
 source is current cmake.txt dir, -B build --> build call build
