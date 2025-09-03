@@ -41,10 +41,27 @@ docker compose up --build
 <!-- start one time-of indival serivce-->
 For link proto
 docker compose up proto-sync
-<!--start all service  -->
+docker compose up cpp-app
+<!--start all service w/o new imange -->
 docker compose up
 <!-- shut down -->
 docker compose down
+<!-- Docker ps -->
+docker ps
+
+<!-- Run in detach -->
+docker-compose up -d cpp-app
+docker start -ai cpp-app
+<!-- Enter shell in cpp -->
+docker run -it --entrypoint /bin/bash cpp-app
+Check volume
+docker run -it --entrypoint /bin/bash -v C:/Users/user/Downloads/fyp/cpp/src:/app/src ubuntu  
+
+<!-- Debug docker cpp-->
+docker build -t cpp-app:builder --target builder .
+docker run -it --rm cpp-app:builder /bin/bash
+<!-- Runtime cpp -->
+docker run -it --rm --entrypoint /bin/bash cpp-app:latest
 
 <!-- Run in docker container  -->
 when the conatiner is running

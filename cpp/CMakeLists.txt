@@ -18,7 +18,7 @@ find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 # -------------------------------
 get_filename_component(ROOT_DIR "${CMAKE_SOURCE_DIR}" PATH)
 set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
+set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/generated")
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 
 file(GLOB PROTO_FILES "${PROTO_DIR}/*.proto")
