@@ -26,11 +26,10 @@ docker inspect --format '{{.Os}}/{{.Architecture}}' your_image_names
 
 docker inspect --format '{{.Os}}/{{.Architecture}}' scala-app       --> linux/amd64
 
-<!-- Fetch all content in cpp-->
+<!-- Fetch all content in cpp obsolete use docker for all works-->
 source is current cmake.txt dir, -B build --> build call build
 
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 
-
 cmake --build build --config Release
 
 
@@ -46,6 +45,25 @@ docker compose up proto-sync
 docker compose up
 <!-- shut down -->
 docker compose down
+
+<!-- Run in docker container  -->
+when the conatiner is running
+docker run -it --name cpp-app-debug cpp-app bash
+<!-- Check version of deps -->
+docker run --rm ubuntu:22.04 bash -c "\
+  apt-get update && \
+  apt-get install -y libgrpc++-dev libprotobuf-dev protobuf-compiler protobuf-compiler-grpc && \
+  echo 'Protobuf version:' && protoc --version && \
+  echo 'libgrpc++-dev version:' && dpkg -s libgrpc++-dev | grep Version && \
+  echo 'libprotobuf-dev version:' && dpkg -s libprotobuf-dev | grep Version"
+
+Protobuf version:
+libprotoc 3.12.4
+libgrpc++-dev version:
+Version: 1.30.2-3build6
+libprotobuf-dev version:
+Version: 3.12.4-1ubuntu7.22.04.4
+
 
 docker-compose.ynml
 :ro --> read only 
