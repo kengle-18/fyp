@@ -49,6 +49,14 @@ foreach(proto ${PROTO_FILES})
     list(APPEND PROTO_GEN_SRCS ${proto_srcs} ${grpc_srcs})
 endforeach()
 
+file(GLOB GENERATED_HDRS "${GENERATED_DIR}/*.pb.h" "${GENERATED_DIR}/*.grpc.pb.h")
+
+set(UMBRELLA_HEADER "${GENERATED_DIR}/all_generated.h")
+file(WRITE ${UMBRELLA_HEADER} "#pragma once\n")
+foreach(hdr ${GENERATED_HDRS})
+    file(APPEND ${UMBRELLA_HEADER} "#include \"${hdr}\" \n")
+endforeach()
+
 # -------------------------------
 # Main executable
 # -------------------------------

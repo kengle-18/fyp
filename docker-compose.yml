@@ -38,5 +38,6 @@ services:
     command: |
       sh -c "
         mkdir -p /tmp/generated
+        cp /app/src/generated/*.h /tmp/generated/ 2>/dev/null || echo 'No .h files found'
         cp /app/src/generated/*.pb.* /tmp/generated/ 2>/dev/null || echo 'No .pb files found'
       "

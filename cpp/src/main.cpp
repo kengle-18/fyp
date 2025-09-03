@@ -5,8 +5,7 @@
 #include <chrono>
 
 #include <grpcpp/grpcpp.h>
-#include "base.grpc.pb.h"
-#include "base.pb.h"
+#include "generated/all_generated.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
