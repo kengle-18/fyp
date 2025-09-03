@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git \
     pkg-config \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -14,9 +15,9 @@ WORKDIR /app
 
 # Copy CMakeLists.txt first for better layer caching
 COPY CMakeLists.txt .
+COPY src ./src
 
-# Create build directory and configure (this fetches and builds gRPC)
-# This step will be cached unless CMakeLists.txt changes
+# Create build directory and configure for Linux
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
 # Copy source code
@@ -37,7 +38,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 appuser
 
 # Copy only the built executable
-COPY --from=builder /app/build/Release/hello_grpc /usr/local/bin/hello_grpc
+COPY --from=builder /app/build/hello_grpc /usr/local/bin/hello_grpc
 
 # Set ownership and make executable
 RUN chmod +x /usr/local/bin/hello_grpc

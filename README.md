@@ -13,15 +13,18 @@ docker run -it --rm scala-app
 docker run -it scala-app
 
 in cpp
+requirer to cmake first then check Fetch all content in cpp
+
 docker build -t cpp-app .
 docker run --rm cpp-app
+docker run cpp-app
 
 <!-- Check platfrom -->
 docker inspect --format '{{.Os}}/{{.Architecture}}' your_image_names
 
 docker inspect --format '{{.Os}}/{{.Architecture}}' scala-app       --> linux/amd64
 
-<!-- Final in cpp dir-->
+<!-- Fetch all content in cpp-->
 source is current cmake.txt dir, -B build --> build call build
 
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 

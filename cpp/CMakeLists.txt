@@ -76,10 +76,10 @@ endforeach()
 # -------------------------------
 # Main executable
 # -------------------------------
-file(GLOB CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+# file(GLOB CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
 add_executable(hello_grpc
-    ${CPP_FILES}
+    src/main.cpp
     ${PROTO_GEN_SRCS}
 )
 
@@ -91,6 +91,7 @@ target_include_directories(hello_grpc
 # Debug: Print available targets
 get_property(allTargets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
 message(STATUS "📌 Available targets: ${allTargets}")
+message(STATUS "📌 PROTO_GEN_SRCS: ${PROTO_GEN_SRCS}")
 
 # Link against the same protobuf that gRPC uses
 # Note: gRPC v1.71.0 uses these target names
