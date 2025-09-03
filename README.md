@@ -4,6 +4,8 @@ in python
 docker build -t python-app .
 docker run --rm python-app  
 
+docker run --rm python-app <py name>
+
 in scala
 sbt clean compile assembly
 
@@ -35,11 +37,19 @@ cmake --build build --config Release
 
 <!-- build wihout cache  -->
 docker compose build --no-cache
-<!-- Starts container -->
-remains running 
+<!-- Rebuild and Starts all container-->
 docker compose up --build
+<!-- start one time-of indival serivce-->
+For link proto
+docker compose up proto-sync
+<!--start all service  -->
+docker compose up
 <!-- shut down -->
 docker compose down
+
+docker-compose.ynml
+:ro --> read only 
+voulumes: affect local too
 
 <!-- format -->
 sbt scalafmtAll
@@ -47,6 +57,9 @@ sbt scalafmtAll
 <!-- check EOF LF or CRLF -->
 git ls-files --eol
 
+
+<!-- Activate conda before python -->
+activate base
 
 What’s META-INF/services?
 

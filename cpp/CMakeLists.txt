@@ -5,48 +5,24 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Disable all testing and shared libraries BEFORE FetchContent
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libraries" FORCE)
-set(BUILD_TESTING OFF CACHE BOOL "Disable testing" FORCE)
+# Use system packages instead of FetchContent
+find_package(PkgConfig REQUIRED)
+find_package(Protobuf REQUIRED)
 
-# gRPC settings
-set(gRPC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(gRPC_BUILD_CSHARP_EXT OFF CACHE BOOL "" FORCE)
-set(gRPC_INSTALL OFF CACHE BOOL "Disable gRPC install" FORCE)
-
-# Abseil settings (gRPC will fetch this)
-set(ABSL_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-set(ABSL_BUILD_TEST_HELPERS OFF CACHE BOOL "" FORCE)
-set(ABSL_USE_GOOGLETEST_HEAD OFF CACHE BOOL "" FORCE)
-set(ABSL_ENABLE_INSTALL OFF CACHE BOOL "Disable Abseil install" FORCE)
-
-# Protobuf settings (gRPC includes this as third_party)
-set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "" FORCE)
-set(protobuf_INSTALL OFF CACHE BOOL "Disable protobuf install" FORCE)
-set(utf8_range_ENABLE_INSTALL OFF CACHE BOOL "Disable utf8_range install" FORCE)
-
-include(FetchContent)
+# Find system protoc and grpc plugin
+find_program(PROTOC protoc REQUIRED)
+find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 
 # -------------------------------
-# Fetch gRPC (this includes protobuf as third_party)
-# -------------------------------
-FetchContent_Declare(
-    grpc
-    GIT_REPOSITORY https://github.com/grpc/grpc.git
-    GIT_TAG v1.50.0
-)
-FetchContent_MakeAvailable(grpc)
-
-# -------------------------------
-# Proto file processing - Use gRPC's built-in protobuf
+# Proto file processing - Use system protobuf
 # -------------------------------
 get_filename_component(ROOT_DIR "${CMAKE_SOURCE_DIR}" PATH)
-set(PROTO_DIR "${ROOT_DIR}/scala/src/main/protobuf")
+set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 
 file(GLOB PROTO_FILES "${PROTO_DIR}/*.proto")
+
 set(PROTO_GEN_SRCS "")
 
 foreach(proto ${PROTO_FILES})
@@ -59,13 +35,13 @@ foreach(proto ${PROTO_FILES})
 
     add_custom_command(
         OUTPUT ${proto_srcs} ${proto_hdrs} ${grpc_srcs} ${grpc_hdrs}
-        COMMAND $<TARGET_FILE:protoc>
+        COMMAND ${PROTOC}
             -I ${PROTO_DIR}
             --cpp_out=${GENERATED_DIR}
             --grpc_out=${GENERATED_DIR}
-            --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin>
+            --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
             ${proto}
-        DEPENDS ${proto} protoc grpc_cpp_plugin
+        DEPENDS ${proto}
         COMMENT "Generating C++ and gRPC sources from ${proto}"
         VERBATIM
     )
@@ -76,8 +52,6 @@ endforeach()
 # -------------------------------
 # Main executable
 # -------------------------------
-# file(GLOB CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-
 add_executable(hello_grpc
     src/main.cpp
     ${PROTO_GEN_SRCS}
@@ -88,16 +62,14 @@ target_include_directories(hello_grpc
     ${GENERATED_DIR}
 )
 
-# Debug: Print available targets
-get_property(allTargets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
-message(STATUS "📌 Available targets: ${allTargets}")
+# Debug: Print available info
 message(STATUS "📌 PROTO_GEN_SRCS: ${PROTO_GEN_SRCS}")
+message(STATUS "📌 gRPC version: ${gRPC_VERSION}")
 
-# Link against the same protobuf that gRPC uses
-# Note: gRPC v1.71.0 uses these target names
+# Link against system gRPC
 target_link_libraries(hello_grpc
     PRIVATE
     grpc++
     grpc
-    libprotobuf
+    protobuf::libprotobuf
 )
