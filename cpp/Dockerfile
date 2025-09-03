@@ -2,12 +2,14 @@
 FROM ubuntu:22.04 AS builder
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     git \
     pkg-config \
     libssl-dev \
+    ccache \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -18,19 +20,19 @@ COPY CMakeLists.txt .
 COPY src ./src
 
 # Create build directory and configure for Linux
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-
-# Copy source code
-COPY . .
+RUN --mount=type=cache,target=/root/.cache \
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+    -DFETCHCONTENT_GIT_SHALLOW=ON
 
 # Build the application
-RUN cmake --build build --config Release -j$(nproc)
+RUN --mount=type=cache,target=/root/.ccache \
+    cmake --build build --config Release -j$(nproc)
 
 # Runtime stage - much smaller final image
 FROM ubuntu:22.04 AS runtime
 
 # Install only runtime dependencies if needed
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 
