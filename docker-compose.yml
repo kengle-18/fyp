@@ -17,7 +17,8 @@ services:
     depends_on:
       - python-app
       - proto-sync
-    command: java -jar scala-assembly-0.1.0-SNAPSHOT.jar
+    volumes:
+      - ./scala/src/main/test/config.txt:/app/config.txt
 
   cpp-app:
     build: ./cpp

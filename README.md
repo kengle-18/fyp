@@ -38,6 +38,8 @@ cmake --build build --config Release
 docker compose build --no-cache
 <!-- Rebuild and Starts all container-->
 docker compose up --build
+<!-- Restart and build one container -->
+docker compose up --build scala-app
 <!-- start one time-of indival serivce-->
 For link proto
 docker compose up proto-sync

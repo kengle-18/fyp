@@ -1,14 +1,3 @@
-// import org.slf4j.LoggerFactory
-
-// object Main {
-//   private val logger = LoggerFactory.getLogger(getClass)
-//   def main(args: Array[String]): Unit = {
-//     logger.info("Enter your name:")
-//     val name = scala.io.StdIn.readLine()
-//     logger.info(s"Hello, $name!")
-//   }
-// }
-
 package com.example
 
 import io.grpc.{ManagedChannel, ManagedChannelBuilder, Server, ServerBuilder}
@@ -80,6 +69,17 @@ object Main extends App {
   val serverExecutionContext =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
   val server = new GrpcServer(serverExecutionContext)
+
+  Config.init(args)
+
+  val name = Config.getArg(0, "DockerUser")
+  val option = Config.getArg(1, "OptionX")
+  logger.info(s"Name selected: $name")
+  logger.info(s"Option selected: $option")
+
+  val allArgs = Config.getAll(Seq("DockerUser", "OptionX"))
+  logger.info(s"All args merged: ${allArgs.mkString(", ")}")
+
   server.start()
 
   val client = new GrpcClient("localhost", 50051)
@@ -87,14 +87,10 @@ object Main extends App {
   try {
     // logger.info("Enter your name:")
     val name = if (args.nonEmpty) args(0) else "DockerUser"
-    if (args(0).nonEmpty) {
+    if (args.length > 0 && args(0).nonEmpty)
       logger.info(s"Name from args0: ${args(0)}")
-      test.test()
-    }
-    if (args(1).nonEmpty) {
+    if (args.length > 1 && args(1).nonEmpty)
       logger.info(s"Name from args1: ${args(1)}")
-      test.abc()
-    }
     logger.info(s"Hello, $name!")
     client.greet(name)
   } finally {
