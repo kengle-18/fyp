@@ -4,6 +4,7 @@
 /.scala-build
 
 cpp/build/
+cpp/src/generated/
 CMakeCache.txt
 CMakeFiles/
 Makefile

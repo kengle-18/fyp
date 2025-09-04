@@ -5,7 +5,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy your Python script into the container
-COPY hello.py .
+COPY src/ ./src/
 
 # Run your script automatically when the container starts
-CMD ["python", "hello.py"]
+ENTRYPOINT ["python"]

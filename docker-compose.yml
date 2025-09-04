@@ -3,17 +3,41 @@ services:
     build: ./python
     container_name: python-app
     command: python hello.py # The command to run the application
-
+  proto-sync:
+    image: alpine:latest
+    container_name: proto-sync
+    volumes:
+      - ./scala/src/main/protobuf:/scala-proto:ro    # Scala proto files
+      - ./cpp/src:/cpp-src                           # Destination in C++ project
+    command: >
+      sh -c "cp -u /scala-proto/*.proto /cpp-src/"
   scala-app:
     build: ./scala
     container_name: scala-app
     depends_on:
       - python-app
+      - proto-sync
     command: java -jar scala-assembly-0.1.0-SNAPSHOT.jar
 
   cpp-app:
     build: ./cpp
     container_name: cpp-app
-    command: ./hello-cpp
     depends_on:
-      - scala-app
+      - proto-sync
+      - cpp-generate
+
+  cpp-generate:
+    build: 
+      context: ./cpp
+      target: builder  # Use builder stage to access generated files
+    container_name: cpp-generate
+    depends_on:
+      - proto-sync
+    volumes:
+      - ./cpp/src/generated:/tmp/generated:rw
+    command: |
+      sh -c "
+        mkdir -p /tmp/generated
+        cp /app/src/generated/*.h /tmp/generated/ 2>/dev/null || echo 'No .h files found'
+        cp /app/src/generated/*.pb.* /tmp/generated/ 2>/dev/null || echo 'No .pb files found'
+      "

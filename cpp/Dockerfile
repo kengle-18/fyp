@@ -1,31 +1,63 @@
-# Stage 1: Build Environment
-# Use a base image with a C++ compiler (e.g., GCC)
-FROM gcc:12 AS builder
+# syntax=docker/dockerfile:1.4
+# ===========================
+# 1. Build stage
+# ===========================
+FROM ubuntu:22.04 AS builder
 
-# Install cmake and other necessary build tools
-RUN apt-get update && apt-get install -y cmake
+# Install build dependencies + system gRPC/Protobuf
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    pkg-config \
+    libssl-dev \
+    ccache \
+    ca-certificates \
+    libgrpc++-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    protobuf-compiler-grpc \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+
 WORKDIR /app
 
-# Copy the source code and CMake build file
-COPY main.cpp .
+# Copy CMake first for caching
 COPY CMakeLists.txt .
 
-# Compile the application using CMake
-RUN cmake . -DCMAKE_EXE_LINKER_FLAGS=-static
-RUN make
+# Copy source and proto files
+COPY src ./src
 
-# Stage 2: Final Runtime Image
-# Use a minimal base image that is self-contained
-FROM alpine:latest
+# Pre-create build directory and configure
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-# Set the working directory
-WORKDIR /app
+# Build the application using ccache for faster incremental builds
+RUN --mount=type=cache,target=/root/.ccache \
+    cmake --build build --config Release -j$(nproc)
 
-# Copy the compiled executable from the builder stage
-# The name `hello-cpp` is defined in CMakeLists.txt
-COPY --from=builder /app/hello-cpp .
+# ===========================
+# 2. Runtime stage
+# ===========================
+FROM ubuntu:22.04 AS runtime
 
-# The command to run the executable when the container starts
-CMD ["./hello-cpp"]
+# Install only runtime libs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libstdc++6 \
+    libgrpc++-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
+# Copy only final executable
+COPY --from=builder /app/build/hello_grpc /usr/local/bin/hello_grpc
+
+# Permissions
+RUN chmod +x /usr/local/bin/hello_grpc
+
+USER appuser
+
+# Entrypoint
+ENTRYPOINT ["hello_grpc"]
