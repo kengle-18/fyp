@@ -24,19 +24,6 @@ services:
       echo 'Contents of /proto-source:';
       ls -la /proto-source/ 2>/dev/null || echo 'Directory not found';
       
-      echo 'Syncing test files...';
-      if [ -d /test-source ] && [ \"\$(ls -A /test-source 2>/dev/null)\" ]; then
-        cp -ru /test-source/* /cpp-dest-test/;
-        cp -ru /test-source/* /scala-dest-test/;
-        echo 'Test files synced successfully';
-        echo 'Contents of scala destination:';
-        ls -la /scala-dest-test/;
-        echo 'Config file contents:';
-        cat /scala-dest-test/config.txt 2>/dev/null || echo 'config.txt not found';
-      else
-        echo 'No test files found to sync';
-      fi
-      
       echo 'Syncing proto files...';
       if [ -d /proto-source ] && [ \"\$(ls -A /proto-source 2>/dev/null)\" ]; then
         cp -ru /proto-source/* /cpp-dest-proto/;
@@ -56,6 +43,14 @@ services:
       - proto-sync
     volumes:
       - ./scala/src/main/test:/scala-dest-test:ro
+    environment:
+      - MAIN_CLASS=com.example.Main
+
+  scala-app-test:
+    build: ./scala
+    container_name: scala-app-test
+    environment:
+      - MAIN_CLASS=com.example.Check
 
   cpp-app:
     build: ./cpp
