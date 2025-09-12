@@ -7,9 +7,10 @@ object Config {
 
   private var _args: Array[String] = Array.empty
   private var _fileConfig: Map[Int, String] = Map.empty
+  private val defaultConfigFile = "/scala-dest-test/config.txt" // Default config file path
 
   /** Initialize with CLI args and optional config file path */
-  def init(args: Array[String], configPath: String = "config.txt"): Unit = {
+  def init(args: Array[String], configPath: String = defaultConfigFile): Unit = {
     _args = args
     loadFileConfig(configPath)
   }
@@ -24,7 +25,7 @@ object Config {
   }
 
   /** Get single argument by index: CLI > config file > fallback */
-  def getArg(index: Int, fallback: String = ""): String =
+  def getArg(index: Int, fallback: String = "Default"): String =
     if (_args.length > index && _args(index).nonEmpty) _args(index)
     else _fileConfig.getOrElse(index, fallback)
 

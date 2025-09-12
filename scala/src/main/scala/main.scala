@@ -72,12 +72,12 @@ object Main extends App {
 
   Config.init(args)
 
-  val name = Config.getArg(0, "DockerUser")
-  val option = Config.getArg(1, "OptionX")
+  val name = Config.getArg(0)
+  val option = Config.getArg(1)
   logger.info(s"Name selected: $name")
   logger.info(s"Option selected: $option")
 
-  val allArgs = Config.getAll(Seq("DockerUser", "OptionX"))
+  val allArgs = Config.getAll(Seq("Default", "Default"))
   logger.info(s"All args merged: ${allArgs.mkString(", ")}")
 
   server.start()
@@ -86,7 +86,7 @@ object Main extends App {
 
   try {
     // logger.info("Enter your name:")
-    val name = if (args.nonEmpty) args(0) else "DockerUser"
+    val name = if (args.nonEmpty) args(0) else "Default"
     if (args.length > 0 && args(0).nonEmpty)
       logger.info(s"Name from args0: ${args(0)}")
     if (args.length > 1 && args(1).nonEmpty)

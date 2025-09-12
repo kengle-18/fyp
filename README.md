@@ -14,6 +14,8 @@ docker run --rm scala-app
 docker run -it --rm scala-app
 docker run -it scala-app
 
+docker run --rm scala-app abc
+
 in cpp
 requirer to cmake first then check Fetch all content in cpp
 
@@ -64,6 +66,11 @@ docker build -t cpp-app:builder --target builder .
 docker run -it --rm cpp-app:builder /bin/bash
 <!-- Runtime cpp -->
 docker run -it --rm --entrypoint /bin/bash cpp-app:latest
+
+<!-- Scala docker debug -->
+docker compose up --build -d scala-app
+docker run --rm -it --entrypoint sh scala-app
+
 
 <!-- Run in docker container  -->
 when the conatiner is running
