@@ -52,19 +52,9 @@ class GrpcClient(host: String, port: Int) {
   }
 }
 
-class Test {
-
-  def test(): Unit =
-    println("test")
-
-  def abc(): Unit =
-    println("function abc called")
-}
-
 // 4️⃣ Main Application
 object Main extends App {
   private val logger = LoggerFactory.getLogger(getClass)
-  private val test = new Test()
 
   val serverExecutionContext =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
@@ -84,17 +74,15 @@ object Main extends App {
 
   val client = new GrpcClient("localhost", 50051)
 
-  try {
-    // logger.info("Enter your name:")
-    val name = if (args.nonEmpty) args(0) else "Default"
-    if (args.length > 0 && args(0).nonEmpty)
-      logger.info(s"Name from args0: ${args(0)}")
-    if (args.length > 1 && args(1).nonEmpty)
-      logger.info(s"Name from args1: ${args(1)}")
-    logger.info(s"Hello, $name!")
-    client.greet(name)
-  } finally {
-    logger.info(s"end")
+  try
+  // logger.info("Enter your name:")
+  // val name = if (args.nonEmpty) args(0) else "Default"
+  // if (args.length > 0 && args(0).nonEmpty)
+  //   logger.info(s"Name from args0: ${args(0)}")
+  // if (args.length > 1 && args(1).nonEmpty)
+  //   logger.info(s"Name from args1: ${args(1)}")
+  client.greet(name)
+  finally {
     client.shutdown()
     server.stop()
     System.exit(0)

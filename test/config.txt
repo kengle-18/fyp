@@ -1,2 +1,2 @@
 Alice
-SpecialOption123456
+SpecialOption123

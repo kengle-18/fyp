@@ -71,6 +71,9 @@ docker run -it --rm --entrypoint /bin/bash cpp-app:latest
 docker compose up --build -d scala-app
 docker run --rm -it --entrypoint sh scala-app
 
+<!-- In fyp -->
+To shut down scala-server
+docker stop scala-server
 
 <!-- Run in docker container  -->
 when the conatiner is running
