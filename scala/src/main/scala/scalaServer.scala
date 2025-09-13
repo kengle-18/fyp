@@ -7,14 +7,17 @@ import org.slf4j.LoggerFactory
 
 // Import the generated ScalaPB classes
 import com.example.base._ // adjust based on the generated folder
+import com.example.grpcHelper._
 
 // 3️⃣ Main Server Application
 object ScalaServer extends App {
   private val logger = LoggerFactory.getLogger(getClass)
 
+  val port = sys.env.getOrElse("SERVER_PORT", "50051").toInt
+
   val serverExecutionContext =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
-  val server = new GrpcServer(serverExecutionContext)
+  val server = new GrpcServer(serverExecutionContext, port)
 
   sys.addShutdownHook {
     logger.info("Shutting down gRPC server...")

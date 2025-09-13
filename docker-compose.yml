@@ -64,13 +64,23 @@ services:
     container_name: scala-client
     environment:
       - MAIN_CLASS=com.example.ScalaClient
+      - SERVER_HOST=scala-server
+      - SERVER_PORT=50051
     depends_on:
       - scala-server
+    volumes:
+      - ./scala/src/main/test:/scala-dest-test:ro
   scala-server:
     build: ./scala
     container_name: scala-server
     environment:
       - MAIN_CLASS=com.example.ScalaServer
+      - SERVER_PORT=50051
+    depends_on:
+      - python-app
+      - proto-sync
+    ports:
+      - "50051:50051"
 
   cpp-app:
     build: ./cpp

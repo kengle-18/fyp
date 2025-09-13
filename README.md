@@ -50,6 +50,8 @@ docker compose up cpp-app
 docker compose up
 <!-- shut down -->
 docker compose down
+<!-- Remove all orphan and shut down -->
+docker-compose down --remove-orphans
 <!-- Docker ps -->
 docker ps
 
