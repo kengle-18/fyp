@@ -7,10 +7,40 @@ object Config {
 
   private var _args: Array[String] = Array.empty
   private var _fileConfig: Map[Int, String] = Map.empty
-  private val defaultConfigFile = "/scala-dest-test/config.txt" // Default config file path
+  private val configDir: String = sys.env.getOrElse("CONFIG_DIR", "/scala-dest-test")
+  private val configFile: String = sys.env.getOrElse("CONFIG_FILE", "config.txt")
+
+  /*
+  Select config file:
+  1. If CONFIG_DIR contains a non-empty file other than CONFIG_FILE,only able to pick one file
+  2. Else if CONFIG_FILE exists and is non-empty, use that
+  3. Else error out*/
+
+  private def findDefaultConfigFile(): String = {
+    val dir = new File(configDir)
+
+    if (!dir.exists() || !dir.isDirectory)
+      throw new IllegalArgumentException(s"Config directory $configDir not found")
+
+    val otherFileOpt = dir
+      .listFiles()
+      .filter(f => f.isFile && f.length() > 0 && f.getName != configFile)
+      .headOption
+
+    otherFileOpt.map(_.getAbsolutePath).getOrElse {
+      // Fallback: try CONFIG_FILE
+      val defaultFile = new File(configDir, configFile)
+      if (defaultFile.exists() && defaultFile.length() > 0)
+        defaultFile.getAbsolutePath
+      else
+        throw new IllegalArgumentException(
+          s"No valid config file found in $configDir (including $configFile)"
+        )
+    }
+  }
 
   /** Initialize with CLI args and optional config file path */
-  def init(args: Array[String], configPath: String = defaultConfigFile): Unit = {
+  def init(args: Array[String], configPath: String = findDefaultConfigFile()): Unit = {
     _args = args
     loadFileConfig(configPath)
   }

@@ -66,6 +66,8 @@ services:
       - MAIN_CLASS=com.example.ScalaClient
       - SERVER_HOST=scala-server
       - SERVER_PORT=50051
+      - CONFIG_DIR=/scala-dest-test
+      - CONFIG_FILE=config.txt
     depends_on:
       - scala-server
     volumes:
