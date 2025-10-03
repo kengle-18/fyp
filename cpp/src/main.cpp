@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     GreeterClient client(grpc::CreateChannel("localhost:50051",
                                              grpc::InsecureChannelCredentials()));
 
-    std::string user("DockerUser");
+    std::string user("DockerUserMains");
     std::string reply = client.SayHello(user);
     std::cout << "👋 Client received: " << reply << std::endl;
 

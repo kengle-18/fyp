@@ -52,12 +52,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd -m -u 1000 appuser
 
 # Copy only final executable
-COPY --from=builder /app/build/hello_grpc /usr/local/bin/hello_grpc
+COPY --from=builder /app/build/hello_grpc /app/hello_grpc
+COPY --from=builder /app/build/server /app/server
+COPY --from=builder /app/build/client /app/client
 
 # Permissions
-RUN chmod +x /usr/local/bin/hello_grpc
+RUN chmod +x /app/hello_grpc /app/server /app/client && \
+    chown appuser:appuser /app/hello_grpc /app/server /app/client
+
+# Optional: add /app to PATH so you can run "server" instead of "/app/server"
+ENV PATH="/app:$PATH"
 
 USER appuser
-
-# Entrypoint
-ENTRYPOINT ["hello_grpc"]

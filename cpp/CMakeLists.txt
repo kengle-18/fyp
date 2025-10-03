@@ -81,3 +81,43 @@ target_link_libraries(hello_grpc
     grpc
     protobuf::libprotobuf
 )
+
+# -------------------------------
+# Server executable
+# -------------------------------
+add_executable(server 
+    src/cppServer.cpp 
+    ${PROTO_GEN_SRCS}
+)
+
+target_include_directories(server 
+    PRIVATE 
+    ${GENERATED_DIR}
+)
+
+target_link_libraries(server 
+    PRIVATE 
+    grpc++ 
+    grpc
+    protobuf::libprotobuf)
+# -------------------------------
+
+# -------------------------------
+# Client executable
+# -------------------------------
+add_executable(client 
+    src/cppClient.cpp 
+    ${PROTO_GEN_SRCS}
+)
+
+target_include_directories(client 
+    PRIVATE 
+    ${GENERATED_DIR}
+)
+
+target_link_libraries(client 
+    PRIVATE 
+    grpc++ 
+    grpc
+    protobuf::libprotobuf)
+# -------------------------------
