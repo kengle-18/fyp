@@ -1,28 +1,10 @@
-#include <iostream>
-#include <memory>
-#include <string>
-#include <grpcpp/grpcpp.h>
-#include "generated/all_generated.h"
-
-using grpc::Server;
-using grpc::ServerBuilder;
-using grpc::ServerContext;
-using grpc::Status;
-using com::example::Greeter;
-using com::example::HelloRequest;
-using com::example::HelloReply;
-
-class GreeterServiceImpl final : public Greeter::Service {
-public:
-    Status SayHello(ServerContext* context, const HelloRequest* request,
-                    HelloReply* reply) override {
-        reply->set_message("Hello, " + request->name() + "!");
-        return Status::OK;
-    }
-};
+#include "header/common.h"
+#include "header/grpcHelper.h"
 
 int main(int argc, char** argv) {
-    std::string server_address("0.0.0.0:50051");
+    const char* port_env = std::getenv("SERVER_PORT");
+    std::string port = port_env ? port_env : "50051";
+    std::string server_address = "0.0.0.0:" + port;
     GreeterServiceImpl service;
 
     ServerBuilder builder;

@@ -67,6 +67,7 @@ add_executable(hello_grpc
 
 target_include_directories(hello_grpc 
     PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${GENERATED_DIR}
 )
 
@@ -92,6 +93,7 @@ add_executable(server
 
 target_include_directories(server 
     PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${GENERATED_DIR}
 )
 
@@ -112,6 +114,7 @@ add_executable(client
 
 target_include_directories(client 
     PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${GENERATED_DIR}
 )
 

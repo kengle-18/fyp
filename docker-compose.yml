@@ -15,35 +15,16 @@ services:
       - ./scala/src/main/protobuf:/scala-dest-proto  # Destination: scala proto files
     command: >
       sh -c "
-      echo 'Creating any missing directories...';
       mkdir -p /cpp-dest-test /cpp-dest-proto /scala-dest-test /scala-dest-proto;
       
-      echo 'DEBUG: Checking source directories...';
-      echo 'Contents of /test-source:';
-      ls -la /test-source/ 2>/dev/null || echo 'Directory not found';
-      echo 'Contents of /proto-source:';
-      ls -la /proto-source/ 2>/dev/null || echo 'Directory not found';
-      
-      echo 'Syncing test files...';
       if [ -d /test-source ] && [ \"\$(ls -A /test-source 2>/dev/null)\" ]; then
         cp -ru /test-source/* /cpp-dest-test/;
         cp -ru /test-source/* /scala-dest-test/;
-        echo 'Test files synced successfully';
-        echo 'Contents of scala destination:';
-        ls -la /scala-dest-test/;
-        echo 'Config file contents:';
-        cat /scala-dest-test/config.txt 2>/dev/null || echo 'config.txt not found';
-      else
-        echo 'No test files found to sync';
       fi
       
-      echo 'Syncing proto files...';
       if [ -d /proto-source ] && [ \"\$(ls -A /proto-source 2>/dev/null)\" ]; then
         cp -ru /proto-source/* /cpp-dest-proto/;
         cp -ru /proto-source/* /scala-dest-proto/;
-        echo 'Proto files synced successfully';
-      else
-        echo 'No proto files found to sync';
       fi
       
       echo 'Sync completed successfully';
