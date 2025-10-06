@@ -18,5 +18,6 @@ cmake_install.cmake
 # Ignore sync proto and test files
 /scala/src/main/protobuf/*.proto
 /scala/src/main/test/*.txt
+/scala/src/main/generated/*
 /cpp/src/protobuf/*.proto
 /cpp/src/test/*.txt

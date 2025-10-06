@@ -127,3 +127,20 @@ services:
         mkdir -p /tmp/generated
         cp -r /app/src/generated/* /tmp/generated/
       "
+  scala-generate:
+    build:
+      context: ./scala
+      target: builder
+    container_name: scala-generate
+    depends_on:
+      - proto-sync
+    volumes:
+      - ./scala/src/main/protobuf:/app/src/main/protobuf:ro
+      - ./scala/src/main/generated:/app/target/scala-2.13/src_managed/main:rw
+    command: >
+      sh -c '
+        sbt clean compile ;
+        echo "✅ ALL Generated Scala files:" ;
+        find /app/target/scala-2.13/src_managed/main -name "*.scala" -type f -exec basename {} \; | sort ;
+        echo "" ;
+      '

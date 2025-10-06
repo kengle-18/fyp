@@ -66,6 +66,7 @@ up is to start service contonously
 
 <!-- How to run -->
 This is to see the genertaed files dev usage
+docker compose build --rm cpp-generate
 docker compose run --rm cpp-generate
 
 <!-- Run in detach -->

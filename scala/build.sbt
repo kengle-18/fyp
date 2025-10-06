@@ -28,6 +28,7 @@ lazy val root = (project in file("."))
       "io.grpc" % "grpc-stub" % scalapb.compiler.Version.grpcJavaVersion
     ),
     // Required to tell ScalaPB to generate the gRPC service code
+    // Read proto files in src/main/protobuf/*.proto
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = true) -> (Compile / sourceManaged).value
     ),
