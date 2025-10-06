@@ -28,6 +28,14 @@ COPY CMakeLists.txt .
 # Copy source and proto files
 COPY src ./src
 
+RUN mkdir -p src/generated && \
+    protoc -I=src/protobuf \
+           --cpp_out=src/generated \
+           --grpc_out=src/generated \
+           --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` \
+           src/protobuf/base.proto
+
+
 # Pre-create build directory and configure
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 

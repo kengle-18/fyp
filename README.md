@@ -54,6 +54,14 @@ docker compose down
 docker-compose down --remove-orphans
 <!-- Docker ps -->
 docker ps
+<!-- Test docker dont have issue  with caching-->
+docker compose build --no-cache <service>
+docker compose up <service>
+cpp --> 70s
+
+
+<!-- Docker run vs up -->
+
 
 <!-- Run in detach -->
 docker-compose up -d cpp-app

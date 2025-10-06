@@ -1,6 +1,5 @@
 syntax = "proto3";
-// Mimic Option in Scala so default value is not set
-import "google/protobuf/wrappers.proto";
+
 package com.example;
 
 service Greeter {
@@ -14,52 +13,3 @@ message HelloRequest {
 message HelloReply {
   string message = 1;
 }
-
-message UniversalMessage {
-
-  // ---------- Scalar Fields as Wrappers ----------
-  google.protobuf.Int32Value single_int = 1;
-  google.protobuf.Int64Value big_int = 2;
-  google.protobuf.StringValue single_string = 3;
-  google.protobuf.BoolValue single_bool = 4;
-  google.protobuf.DoubleValue single_double = 5;
-  google.protobuf.FloatValue single_float = 6;
-  google.protobuf.BytesValue single_bytes = 7;
-
-  // ---------- Repeated Fields (wrappers) ----------
-  repeated google.protobuf.Int32Value repeated_int = 8;
-  repeated google.protobuf.StringValue repeated_string = 9;
-  repeated google.protobuf.BoolValue repeated_bool = 10;
-  repeated google.protobuf.DoubleValue repeated_double = 11;
-  repeated google.protobuf.FloatValue repeated_float = 12;
-  repeated google.protobuf.Int64Value repeated_big_int = 13;
-  repeated google.protobuf.BytesValue repeated_bytes = 14;
-
-  // ---------- Map Fields (values as wrappers) ----------
-  map<int32, google.protobuf.StringValue> map_int_string = 15;
-  map<string, google.protobuf.Int32Value> map_string_int = 16;
-  map<int32, NestedMessage> map_int_nested = 17;
-
-  // ---------- Nested Message ----------
-  message NestedMessage {
-    google.protobuf.StringValue name = 1;
-    google.protobuf.Int32Value value = 2;
-  }
-  NestedMessage nested = 18;
-  repeated NestedMessage repeated_nested = 19;
-
-  // ---------- Enum ----------
-  enum Status {
-    UNKNOWN = 0;
-    ACTIVE = 1;
-    INACTIVE = 2;
-  }
-  Status status = 20;
-  repeated Status repeated_status = 21;
-
-}
-
-service UniversalTester {
-  rpc SendUniversal (UniversalMessage) returns (UniversalMessage);
-}
-

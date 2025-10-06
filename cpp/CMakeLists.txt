@@ -17,7 +17,7 @@ find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 # Proto file processing - Use system protobuf
 # -------------------------------
 get_filename_component(ROOT_DIR "${CMAKE_SOURCE_DIR}" PATH)
-set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/protobuf")
 set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/generated")
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 

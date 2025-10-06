@@ -18,13 +18,13 @@ services:
       mkdir -p /cpp-dest-test /cpp-dest-proto /scala-dest-test /scala-dest-proto;
       
       if [ -d /test-source ] && [ \"\$(ls -A /test-source 2>/dev/null)\" ]; then
-        cp -ru /test-source/* /cpp-dest-test/;
-        cp -ru /test-source/* /scala-dest-test/;
+        cp -r /test-source/* /cpp-dest-test/;
+        cp -r /test-source/* /scala-dest-test/;
       fi
       
       if [ -d /proto-source ] && [ \"\$(ls -A /proto-source 2>/dev/null)\" ]; then
-        cp -ru /proto-source/* /cpp-dest-proto/;
-        cp -ru /proto-source/* /scala-dest-proto/;
+        cp -r /proto-source/* /cpp-dest-proto/;
+        cp -r /proto-source/* /scala-dest-proto/;
       fi
       
       echo 'Sync completed successfully';
@@ -95,6 +95,7 @@ services:
       - proto-sync
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
+      - ./cpp/src/generated:/app/src/generated
     
   cpp-server:
     build:
@@ -125,6 +126,5 @@ services:
     command: |
       sh -c "
         mkdir -p /tmp/generated
-        cp /app/src/generated/*.h /tmp/generated/ 2>/dev/null || echo 'No .h files found'
-        cp /app/src/generated/*.pb.* /tmp/generated/ 2>/dev/null || echo 'No .pb files found'
+        cp -r /app/src/generated/* /tmp/generated/
       "
