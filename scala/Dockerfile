@@ -55,12 +55,13 @@ USER appuser
 
 # Optimized runtime
 
-ENTRYPOINT ["java", \
-    "-XX:+UseContainerSupport", \
-    "-XX:MaxRAMPercentage=75.0", \
-    "-XX:+UseG1GC", \
-    "-XX:+UseStringDeduplication", \
-    "-XX:+UnlockExperimentalVMOptions", \
-    "-Djava.security.egd=file:/dev/./urandom", \
-    "-jar", \
-    "app.jar"]
+ENTRYPOINT ["sh", "-c", \
+           "java -XX:+UseContainerSupport \
+                 -XX:MaxRAMPercentage=75.0 \
+                 -XX:+UseG1GC \
+                 -XX:+UseStringDeduplication \
+                 -XX:+UnlockExperimentalVMOptions \
+                 -Djava.security.egd=file:/dev/./urandom \
+                 -cp app.jar $MAIN_CLASS"]
+
+

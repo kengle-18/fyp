@@ -1,4 +1,4 @@
-package com.example
+package com.example.grpcHelper
 
 import io.grpc.{ManagedChannel, ManagedChannelBuilder, Server, ServerBuilder}
 import scala.concurrent.{ExecutionContext, Future}
@@ -16,10 +16,10 @@ class GreeterImpl extends GreeterGrpc.Greeter {
 }
 
 // 2️⃣ gRPC Server
-class GrpcServer(executionContext: ExecutionContext) {
+class GrpcServer(executionContext: ExecutionContext, port: Int) {
 
   val server: Server = ServerBuilder
-    .forPort(50051)
+    .forPort(port)
     .addService(GreeterGrpc.bindService(new GreeterImpl, executionContext))
     .build()
 
@@ -49,42 +49,5 @@ class GrpcClient(host: String, port: Int) {
     val request = HelloRequest(name)
     val response = blockingStub.sayHello(request)
     println(s"Client: Greeting received: ${response.message}")
-  }
-}
-
-// 4️⃣ Main Application
-object Main extends App {
-  private val logger = LoggerFactory.getLogger(getClass)
-
-  val serverExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
-  val server = new GrpcServer(serverExecutionContext)
-
-  Config.init(args)
-
-  val name = Config.getArg(0)
-  val option = Config.getArg(1)
-  logger.info(s"Name selected: $name")
-  logger.info(s"Option selected: $option")
-
-  val allArgs = Config.getAll(Seq("Default", "Default"))
-  logger.info(s"All args merged: ${allArgs.mkString(", ")}")
-
-  server.start()
-
-  val client = new GrpcClient("localhost", 50051)
-
-  try
-  // logger.info("Enter your name:")
-  // val name = if (args.nonEmpty) args(0) else "Default"
-  // if (args.length > 0 && args(0).nonEmpty)
-  //   logger.info(s"Name from args0: ${args(0)}")
-  // if (args.length > 1 && args(1).nonEmpty)
-  //   logger.info(s"Name from args1: ${args(1)}")
-  client.greet(name)
-  finally {
-    client.shutdown()
-    server.stop()
-    System.exit(0)
   }
 }

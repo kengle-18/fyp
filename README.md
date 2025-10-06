@@ -14,6 +14,8 @@ docker run --rm scala-app
 docker run -it --rm scala-app
 docker run -it scala-app
 
+docker run --rm scala-app abc
+
 in cpp
 requirer to cmake first then check Fetch all content in cpp
 
@@ -38,6 +40,8 @@ cmake --build build --config Release
 docker compose build --no-cache
 <!-- Rebuild and Starts all container-->
 docker compose up --build
+<!-- Restart and build one container -->
+docker compose up --build scala-app
 <!-- start one time-of indival serivce-->
 For link proto
 docker compose up proto-sync
@@ -46,8 +50,24 @@ docker compose up cpp-app
 docker compose up
 <!-- shut down -->
 docker compose down
+<!-- Remove all orphan and shut down -->
+docker-compose down --remove-orphans
 <!-- Docker ps -->
 docker ps
+<!-- Test docker dont have issue  with caching-->
+docker compose build --no-cache <service>
+docker compose up <service>
+cpp --> 70s
+
+
+<!-- Docker run vs up -->
+run is for one offf generatin command 
+up is to start service contonously
+
+<!-- How to run -->
+This is to see the genertaed files dev usage
+docker compose build --rm cpp-generate
+docker compose run --rm cpp-generate
 
 <!-- Run in detach -->
 docker-compose up -d cpp-app
@@ -62,6 +82,14 @@ docker build -t cpp-app:builder --target builder .
 docker run -it --rm cpp-app:builder /bin/bash
 <!-- Runtime cpp -->
 docker run -it --rm --entrypoint /bin/bash cpp-app:latest
+
+<!-- Scala docker debug -->
+docker compose up --build -d scala-app
+docker run --rm -it --entrypoint sh scala-app
+
+<!-- In fyp -->
+To shut down scala-server
+docker stop scala-server
 
 <!-- Run in docker container  -->
 when the conatiner is running

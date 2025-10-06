@@ -17,7 +17,7 @@ find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
 # Proto file processing - Use system protobuf
 # -------------------------------
 get_filename_component(ROOT_DIR "${CMAKE_SOURCE_DIR}" PATH)
-set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/protobuf")
 set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/generated")
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 
@@ -67,6 +67,7 @@ add_executable(hello_grpc
 
 target_include_directories(hello_grpc 
     PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${GENERATED_DIR}
 )
 
@@ -81,3 +82,45 @@ target_link_libraries(hello_grpc
     grpc
     protobuf::libprotobuf
 )
+
+# -------------------------------
+# Server executable
+# -------------------------------
+add_executable(server 
+    src/cppServer.cpp 
+    ${PROTO_GEN_SRCS}
+)
+
+target_include_directories(server 
+    PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${GENERATED_DIR}
+)
+
+target_link_libraries(server 
+    PRIVATE 
+    grpc++ 
+    grpc
+    protobuf::libprotobuf)
+# -------------------------------
+
+# -------------------------------
+# Client executable
+# -------------------------------
+add_executable(client 
+    src/cppClient.cpp 
+    ${PROTO_GEN_SRCS}
+)
+
+target_include_directories(client 
+    PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${GENERATED_DIR}
+)
+
+target_link_libraries(client 
+    PRIVATE 
+    grpc++ 
+    grpc
+    protobuf::libprotobuf)
+# -------------------------------
