@@ -61,7 +61,12 @@ cpp --> 70s
 
 
 <!-- Docker run vs up -->
+run is for one offf generatin command 
+up is to start service contonously
 
+<!-- How to run -->
+This is to see the genertaed files dev usage
+docker compose run --rm cpp-generate
 
 <!-- Run in detach -->
 docker-compose up -d cpp-app

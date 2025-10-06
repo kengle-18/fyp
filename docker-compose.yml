@@ -107,7 +107,6 @@ services:
     command: ["/app/server"]  # Explicitly run server (matches default CMD)
     depends_on:
       - proto-sync
-      - cpp-generate
       - python-app
     ports:
       - "50052:50051"  # Map to different host port to avoid conflict with Scala
