@@ -80,6 +80,10 @@ docker start -ai cpp-app
 docker run -it --entrypoint /bin/bash cpp-app
 Check volume
 docker run -it --entrypoint /bin/bash -v C:/Users/user/Downloads/fyp/cpp/src:/app/src ubuntu  
+<!-- Enter shell of alraedy running service  -->
+Get the Id of service 
+docker ps 
+docker exec -it <containerID> /bin/bash
 
 <!-- Debug docker cpp-->
 docker build -t cpp-app:builder --target builder .

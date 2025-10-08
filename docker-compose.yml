@@ -96,6 +96,7 @@ services:
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
       - ./cpp/src/generated:/app/src/generated
+      - ./analyzer:/app/cpp/src
     
   cpp-server:
     build:
@@ -112,6 +113,7 @@ services:
       - "50052:50051"  # Map to different host port to avoid conflict with Scala
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
+      - ./analyzer:/app/cpp/src
 
   cpp-generate:
     build: 

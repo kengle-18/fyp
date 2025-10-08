@@ -21,3 +21,6 @@ cmake_install.cmake
 /scala/src/main/generated/*
 /cpp/src/protobuf/*.proto
 /cpp/src/test/*.txt
+
+# Ignore analyzer files
+/analyzer/*
