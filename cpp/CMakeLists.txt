@@ -57,11 +57,15 @@ foreach(hdr ${GENERATED_HDRS})
     file(APPEND ${UMBRELLA_HEADER} "#include \"${hdr}\" \n")
 endforeach()
 
+# Automatically find all .cpp files in src/utils
+file(GLOB UTILS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp")
+
 # -------------------------------
 # Main executable
 # -------------------------------
 add_executable(hello_grpc
     src/main.cpp
+    ${UTILS_SRCS}
     ${PROTO_GEN_SRCS}
 )
 
@@ -88,6 +92,7 @@ target_link_libraries(hello_grpc
 # -------------------------------
 add_executable(server 
     src/cppServer.cpp 
+    ${UTILS_SRCS}
     ${PROTO_GEN_SRCS}
 )
 
@@ -109,6 +114,7 @@ target_link_libraries(server
 # -------------------------------
 add_executable(client 
     src/cppClient.cpp 
+    ${UTILS_SRCS}
     ${PROTO_GEN_SRCS}
 )
 
