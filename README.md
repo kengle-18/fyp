@@ -84,6 +84,10 @@ docker run -it --entrypoint /bin/bash -v C:/Users/user/Downloads/fyp/cpp/src:/ap
 Get the Id of service 
 docker ps 
 docker exec -it <containerID> /bin/bash
+Get all container even stopped
+docker ps -a 
+To delete 
+docker rm <service> 
 
 <!-- Debug docker cpp-->
 docker build -t cpp-app:builder --target builder .

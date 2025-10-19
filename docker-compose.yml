@@ -173,7 +173,7 @@ services:
       - CONFIG_FILE=config.txt
     command: ["/app/client"]  # Override default CMD to run client
     depends_on:
-      - cpp-server
+      - scala-server
       - proto-sync
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
