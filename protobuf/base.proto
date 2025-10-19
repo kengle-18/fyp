@@ -13,3 +13,56 @@ message HelloRequest {
 message HelloReply {
   string message = 1;
 }
+
+message UniversalMessage {
+  // ---------- Scalar Fields (Optional) ----------
+  optional int32 single_int = 1;
+  optional int64 big_int = 2;
+  optional string single_string = 3;
+  optional bool single_bool = 4;
+  optional double single_double = 5;
+  optional float single_float = 6;
+  optional bytes single_bytes = 7;
+  
+  // ---------- Repeated Fields ----------
+  // Note: repeated fields are ALWAYS optional (empty list vs not set)
+  // You can check with .isEmpty in Scala
+  repeated int32 repeated_int = 8;
+  repeated string repeated_string = 9;
+  repeated bool repeated_bool = 10;
+  repeated double repeated_double = 11;
+  repeated float repeated_float = 12;
+  repeated int64 repeated_big_int = 13;
+  repeated bytes repeated_bytes = 14;
+  
+  // ---------- Map Fields ----------
+  // Note: maps are ALWAYS optional (empty map vs not set)
+  // You can check with .isEmpty in Scala
+  map<int32, string> map_int_string = 15;
+  map<string, int32> map_string_int = 16;
+  map<int32, NestedMessage> map_int_nested = 17;
+  
+  // ---------- Nested Message ----------
+  message NestedMessage {
+    optional string name = 1;
+    optional int32 value = 2;
+  }
+  
+  // Messages are naturally optional in proto3
+  optional NestedMessage nested = 18;
+  repeated NestedMessage repeated_nested = 19;
+  
+  // ---------- Enum ----------
+  enum Status {
+    UNKNOWN = 0;
+    ACTIVE = 1;
+    INACTIVE = 2;
+  }
+  
+  optional Status status = 20;
+  repeated Status repeated_status = 21;
+}
+
+service UniversalTester {
+  rpc SendUniversal (UniversalMessage) returns (UniversalMessage);
+}
