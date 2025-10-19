@@ -96,6 +96,7 @@ services:
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
       - ./cpp/src/generated:/app/src/generated
+      - ./analyzer:/app/cpp/src
     
   cpp-server:
     build:
@@ -112,6 +113,7 @@ services:
       - "50052:50051"  # Map to different host port to avoid conflict with Scala
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
+      - ./analyzer:/app/cpp/src
 
   cpp-generate:
     build: 
@@ -144,3 +146,38 @@ services:
         find /app/target/scala-2.13/src_managed/main -name "*.scala" -type f -exec basename {} \; | sort ;
         echo "" ;
       '
+
+  cpp-server-scala-client:
+    build: ./scala
+    container_name: cpp-server-scala-client
+    environment:
+      - MAIN_CLASS=com.example.ScalaClient
+      - SERVER_HOST=scala-server
+      - SERVER_PORT=50051
+      - CONFIG_DIR=/scala-dest-test
+      - CONFIG_FILE=config.txt
+    depends_on:
+      - cpp-server
+    volumes:
+      - ./scala/src/main/test:/scala-dest-test:ro
+
+  scala-server-cpp-client:
+    build:
+      context: ./cpp
+      target: runtime
+    container_name: scala-server-cpp-client
+    environment:
+      - SERVER_HOST=cpp-server
+      - SERVER_PORT=50051
+      - CONFIG_DIR=/cpp-dest-test
+      - CONFIG_FILE=config.txt
+    command: ["/app/client"]  # Override default CMD to run client
+    depends_on:
+      - scala-server
+      - proto-sync
+    volumes:
+      - ./cpp/src/test:/cpp-dest-test:ro
+      - ./cpp/src/generated:/app/src/generated
+  
+  
+    

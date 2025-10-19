@@ -52,6 +52,10 @@ docker compose up
 docker compose down
 <!-- Remove all orphan and shut down -->
 docker-compose down --remove-orphans
+<!-- Remove Docker image, Docker volumes  -->
+<!-- Bind mount map host to container vs named volume (docker) created and managed by docker, 
+lives inside docker data storage -->
+docker compose down --rmi all --volumes --remove-orphans
 <!-- Docker ps -->
 docker ps
 <!-- Test docker dont have issue  with caching-->
@@ -76,6 +80,14 @@ docker start -ai cpp-app
 docker run -it --entrypoint /bin/bash cpp-app
 Check volume
 docker run -it --entrypoint /bin/bash -v C:/Users/user/Downloads/fyp/cpp/src:/app/src ubuntu  
+<!-- Enter shell of alraedy running service  -->
+Get the Id of service 
+docker ps 
+docker exec -it <containerID> /bin/bash
+Get all container even stopped
+docker ps -a 
+To delete 
+docker rm <service> 
 
 <!-- Debug docker cpp-->
 docker build -t cpp-app:builder --target builder .
@@ -86,6 +98,8 @@ docker run -it --rm --entrypoint /bin/bash cpp-app:latest
 <!-- Scala docker debug -->
 docker compose up --build -d scala-app
 docker run --rm -it --entrypoint sh scala-app
+docker compose run --rm scala-client sh
+
 
 <!-- In fyp -->
 To shut down scala-server

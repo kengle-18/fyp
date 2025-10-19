@@ -11,6 +11,9 @@
 #include <string>        // std::string
 #include <thread>        // std::thread (optional, for multi-threaded use)
 #include <chrono>        // std::chrono::seconds, etc.
+#include <fstream>       // std::ofstream
+#include <filesystem>    // std::filesystem (C++17)
+#include <map>           // std::map
 
 // gRPC / Protobuf
 #include <grpcpp/grpcpp.h>   // Main gRPC API
