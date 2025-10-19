@@ -146,6 +146,14 @@ services:
         find /app/target/scala-2.13/src_managed/main -name "*.scala" -type f -exec basename {} \; | sort ;
         echo "" ;
       '
+  cpp-scala-generate:
+    image: "alpine:latest"
+    container_name: cpp-scala-generate
+    depends_on:
+      - cpp-generate
+      - scala-generate
+    command: sh -c 'echo "✅ C++ and Scala generation completed"'
+
 
   cpp-server-scala-client:
     build: ./scala
