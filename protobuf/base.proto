@@ -14,6 +14,12 @@ message HelloReply {
   string message = 1;
 }
 
+message User {
+  string name = 1;
+  int32 age = 2;
+}
+
+
 message UniversalMessage {
   // ---------- Scalar Fields (Optional) ----------
   optional int32 single_int = 1;

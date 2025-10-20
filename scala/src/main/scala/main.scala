@@ -8,6 +8,10 @@ import org.slf4j.LoggerFactory
 // Import the generated ScalaPB classes
 import com.example.base._ // adjust based on the generated folder
 
+import shapeless._
+import shapeless.labelled._
+import shapeless.syntax.singleton._
+
 // 1️⃣ Server Implementation
 class GreeterImpl extends GreeterGrpc.Greeter {
 
@@ -50,6 +54,20 @@ class GrpcClient(host: String, port: Int) {
     val response = blockingStub.sayHello(request)
     println(s"Client: Greeting received: ${response.message}")
   }
+
+  def updateField[T, Repr <: HList, K <: Symbol, V](
+      t: T,
+      field: Witness.Aux[K],
+      value: Option[V]
+  )(implicit
+      gen: LabelledGeneric.Aux[T, Repr],
+      updater: ops.record.Updater.Aux[Repr, FieldType[K, Option[V]], Repr]
+  ): T = {
+    val repr = gen.to(t)
+    val fieldEntry = (field.value ->> value).asInstanceOf[FieldType[K, Option[V]]]
+    val updated = updater(repr, fieldEntry)
+    gen.from(updated)
+  }
 }
 
 // 4️⃣ Main Application
@@ -74,15 +92,29 @@ object Main extends App {
 
   val client = new GrpcClient("localhost", 50051)
 
-  try
-  // logger.info("Enter your name:")
-  // val name = if (args.nonEmpty) args(0) else "Default"
-  // if (args.length > 0 && args(0).nonEmpty)
-  //   logger.info(s"Name from args0: ${args(0)}")
-  // if (args.length > 1 && args(1).nonEmpty)
-  //   logger.info(s"Name from args1: ${args(1)}")
-  client.greet(name)
-  finally {
+  try {
+    // logger.info("Enter your name:")
+    // val name = if (args.nonEmpty) args(0) else "Default"
+    // if (args.length > 0 && args(0).nonEmpty)
+    //   logger.info(s"Name from args0: ${args(0)}")
+    // if (args.length > 1 && args(1).nonEmpty)
+    //   logger.info(s"Name from args1: ${args(1)}")
+
+    case class User(name: Option[String] = None, age: Option[Int] = None)
+    val user = User(Some("Bob"), Some(30))
+
+    client.greet(name)
+
+    val updatedUser1 = client.updateField(user, Witness('name), Some("Alice"))
+    println(s"Updated name: $updatedUser1")
+
+    val updatedUser2 = client.updateField(user, Witness('age), Some(35))
+    println(s"Updated age: $updatedUser2")
+
+    val updatedUser3 = client.updateField(updatedUser2, Witness('name), Some("Charlie"))
+    println(s"Updated both: $updatedUser3")
+
+  } finally {
     client.shutdown()
     server.stop()
     System.exit(0)
