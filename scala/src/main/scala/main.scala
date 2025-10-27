@@ -55,6 +55,7 @@ class GrpcClient(host: String, port: Int) {
     println(s"Client: Greeting received: ${response.message}")
   }
 
+  // update using generics
   def updateField[T, Repr <: HList, K <: Symbol, V](
       t: T,
       field: Witness.Aux[K],
@@ -68,6 +69,20 @@ class GrpcClient(host: String, port: Int) {
     val updated = updater(repr, fieldEntry)
     gen.from(updated)
   }
+}
+
+object RuntimeOptionalUpdater {
+
+  // Update an optional Int field at runtime
+  def updateOptionalInt(msg: UniversalMessage, fieldName: String, value: Any): Either[String, UniversalMessage] =
+    fieldName match {
+      case "singleInt" =>
+        value match {
+          case v: Int => Right(msg.update(_.singleInt := v))
+          case _      => Left(s"Invalid type for $fieldName: ${value.getClass}")
+        }
+      case _ => Left(s"Unknown field: $fieldName")
+    }
 }
 
 // 4️⃣ Main Application
@@ -113,6 +128,20 @@ object Main extends App {
 
     val updatedUser3 = client.updateField(updatedUser2, Witness('name), Some("Charlie"))
     println(s"Updated both: $updatedUser3")
+
+    // Test for generics compile time
+    val msg = UniversalMessage()
+    val msg1 = msg.update(
+      _.optionalSingleInt := Some(42),
+      _.optionalSingleBool := Some(true)
+    )
+
+    println(s"msg: ${msg1.singleInt}")
+
+    // Test for runtime
+    import RuntimeOptionalUpdater._
+    val msg2 = updateOptionalInt(msg, "singleInt", 42)
+    println(s"Updated: ${msg2.map(_.singleInt)}")
 
   } finally {
     client.shutdown()
