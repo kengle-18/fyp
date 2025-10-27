@@ -135,8 +135,19 @@ object Main extends App {
       _.optionalSingleInt := Some(42),
       _.optionalSingleBool := Some(true)
     )
-
+    println(s"msg is : ${msg1}")
     println(s"msg: ${msg1.singleInt}")
+
+    msg1.productIterator.zip(msg1.productElementNames).foreach {
+      case (value, name) =>
+        // println(value, name)
+        value match {
+          case Some(v)                        => println(s"$name is set: $v")
+          case seq: Seq[_] if seq.nonEmpty    => println(s"$name is set: $seq")
+          case map: Map[_, _] if map.nonEmpty => println(s"$name is set: $map")
+          case _                              => // field not set
+        }
+    }
 
     // Test for runtime
     import RuntimeOptionalUpdater._
