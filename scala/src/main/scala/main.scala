@@ -19,12 +19,19 @@ class GreeterImpl extends GreeterGrpc.Greeter {
     Future.successful(HelloReply(message = s"Hello, ${request.name}!"))
 }
 
+class UniversalTesterImpl extends UniversalTesterGrpc.UniversalTester {
+
+  override def sendUniversal(request: UniversalMessage): Future[UniversalMessage] =
+    Future.successful(request) // simply echo back for testing
+}
+
 // 2️⃣ gRPC Server
 class GrpcServer(executionContext: ExecutionContext) {
 
   val server: Server = ServerBuilder
     .forPort(50051)
     .addService(GreeterGrpc.bindService(new GreeterImpl, executionContext))
+    .addService(UniversalTesterGrpc.bindService(new UniversalTesterImpl, executionContext))
     .build()
 
   def start(): Unit = {
@@ -47,12 +54,26 @@ class GrpcClient(host: String, port: Int) {
   val blockingStub: GreeterGrpc.GreeterBlockingStub =
     GreeterGrpc.blockingStub(channel)
 
+  val blockingStubV2: UniversalTesterGrpc.UniversalTesterBlockingStub =
+    UniversalTesterGrpc.blockingStub(channel)
+
   def shutdown(): Unit = channel.shutdown()
 
   def greet(name: String): Unit = {
     val request = HelloRequest(name)
     val response = blockingStub.sayHello(request)
     println(s"Client: Greeting received: ${response.message}")
+  }
+
+  def sendMessage(fieldName: String, value: Any): Unit = {
+    val msgToSend = fieldName match {
+      case "singleInt"    => UniversalMessage(singleInt = Some(value.asInstanceOf[Int]))
+      case "singleString" => UniversalMessage(singleString = Some(value.asInstanceOf[String]))
+      case "singleBool"   => UniversalMessage(singleBool = Some(value.asInstanceOf[Boolean]))
+      case _              => throw new IllegalArgumentException(s"Unknown field: $fieldName")
+    }
+    val response: UniversalMessage = blockingStubV2.sendUniversal(msgToSend)
+    println(s"Sent field $fieldName with value $value, got response: $response")
   }
 
   // update using generics
@@ -69,6 +90,18 @@ class GrpcClient(host: String, port: Int) {
     val updated = updater(repr, fieldEntry)
     gen.from(updated)
   }
+
+  def getSetFields(msg: UniversalMessage): Seq[(String, Any)] =
+    msg.productIterator
+      .zip(msg.productElementNames)
+      .flatMap {
+        case (Some(v), name)                        => Some(name -> v) // Optional field is set
+        case (seq: Seq[_], name) if seq.nonEmpty    => Some(name -> seq) // Repeated field
+        case (map: Map[_, _], name) if map.nonEmpty => Some(name -> map) // Map field
+        case _                                      => None // Not set
+      }
+      .toSeq
+
 }
 
 object RuntimeOptionalUpdater {
@@ -138,21 +171,32 @@ object Main extends App {
     println(s"msg is : ${msg1}")
     println(s"msg: ${msg1.singleInt}")
 
-    msg1.productIterator.zip(msg1.productElementNames).foreach {
-      case (value, name) =>
-        // println(value, name)
-        value match {
-          case Some(v)                        => println(s"$name is set: $v")
-          case seq: Seq[_] if seq.nonEmpty    => println(s"$name is set: $seq")
-          case map: Map[_, _] if map.nonEmpty => println(s"$name is set: $map")
-          case _                              => // field not set
-        }
+    // msg1.productIterator.zip(msg1.productElementNames).foreach {
+    //   case (value, name) =>
+    //     // println(value, name)
+    //     value match {
+    //       case Some(v)                        => println(s"$name is set: $v")
+    //       case seq: Seq[_] if seq.nonEmpty    => println(s"$name is set: $seq")
+    //       case map: Map[_, _] if map.nonEmpty => println(s"$name is set: $map")
+    //       case _                              => // field not set
+    //     }
+    // }
+
+    val setFields = client.getSetFields(msg1)
+
+    setFields.foreach {
+      case (fieldName, value) =>
+        println(s"Sending field $fieldName with value $value")
+        client.sendMessage(fieldName, value)
+
     }
 
     // Test for runtime
     import RuntimeOptionalUpdater._
     val msg2 = updateOptionalInt(msg, "singleInt", 42)
     println(s"Updated: ${msg2.map(_.singleInt)}")
+
+    client.greet(name)
 
   } finally {
     client.shutdown()
