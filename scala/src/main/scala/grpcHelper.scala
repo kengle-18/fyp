@@ -109,6 +109,8 @@ class GrpcClient(host: String, port: Int) {
             writer.write(s"$name: [${seq.mkString(", ")}]\n")
           case (map: Map[_, _], name) =>
             writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
+          case (None, name) =>
+            writer.write(s"$name: <not set>\n")
           case (_, name) =>
             writer.write(s"$name: \n")
         }
