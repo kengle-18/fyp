@@ -4,6 +4,8 @@ import io.grpc.{ManagedChannel, ManagedChannelBuilder, Server, ServerBuilder}
 import scala.concurrent.{ExecutionContext, Future}
 import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
+import java.io.{BufferedWriter, FileWriter}
+import java.nio.file.{Files, Path, Paths}
 
 // Import the generated ScalaPB classes
 import com.example.base._ // adjust based on the generated folder
@@ -58,6 +60,14 @@ class GrpcClient(host: String, port: Int) {
 
   def sendAllMessages(message: UniversalMessage): Unit = {
     val setFields = getSetFields(message)
+
+    val dir: String = sys.env.getOrElse("CONFIG_APP_TEXT_DIR", "/app/scala/src/generated")
+    val dirPath: Path = Paths.get(dir)
+    val filePath: String = sys.env.getOrElse("CONFIG_APP_TEXT_FILE", "scalaClient.txt")
+    val fullFilePath: String = dirPath.resolve(filePath).toString
+
+    writeToFile(universalmessageToSend = message, dirPath = dirPath, fullFilePath = fullFilePath, appendMode = false)
+
     setFields.foreach {
       case (fieldName, value) =>
         println(s"Sending field $fieldName with value $value")
@@ -75,6 +85,35 @@ class GrpcClient(host: String, port: Int) {
         case _                                      => None // Not set
       }
       .toSeq
+
+  def writeToFile(
+      universalmessageToSend: UniversalMessage,
+      dirPath: Path,
+      fullFilePath: String,
+      appendMode: Boolean
+  ): Unit = {
+    if (!Files.exists(dirPath))
+      Files.createDirectories(dirPath)
+
+    val writer = new BufferedWriter(new FileWriter(fullFilePath, appendMode)) // append mode true, false to overwrite
+    try {
+      writer.write(s"=== New gRPC Call ===\n")
+      writer.write("Message fields:\n")
+
+      universalmessageToSend.productIterator
+        .zip(universalmessageToSend.productElementNames)
+        .foreach {
+          case (Some(value), name) =>
+            writer.write(s"$name: $value\n")
+          case (seq: Seq[_], name) =>
+            writer.write(s"$name: [${seq.mkString(", ")}]\n")
+          case (map: Map[_, _], name) =>
+            writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
+          case (_, name) =>
+            writer.write(s"$name: \n")
+        }
+    } finally writer.close()
+  }
 
 }
 

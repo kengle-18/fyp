@@ -5,6 +5,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
 
+import java.nio.file.{Files, Paths}
+import java.nio.charset.StandardCharsets
+
 // Import the generated ScalaPB classes
 import com.example.base._ // adjust based on the generated folder
 
@@ -141,13 +144,6 @@ object Main extends App {
   val client = new GrpcClient("localhost", 50051)
 
   try {
-    // logger.info("Enter your name:")
-    // val name = if (args.nonEmpty) args(0) else "Default"
-    // if (args.length > 0 && args(0).nonEmpty)
-    //   logger.info(s"Name from args0: ${args(0)}")
-    // if (args.length > 1 && args(1).nonEmpty)
-    //   logger.info(s"Name from args1: ${args(1)}")
-
     case class User(name: Option[String] = None, age: Option[Int] = None)
     val user = User(Some("Bob"), Some(30))
 
@@ -171,25 +167,18 @@ object Main extends App {
     println(s"msg is : ${msg1}")
     println(s"msg: ${msg1.singleInt}")
 
-    // msg1.productIterator.zip(msg1.productElementNames).foreach {
-    //   case (value, name) =>
-    //     // println(value, name)
-    //     value match {
-    //       case Some(v)                        => println(s"$name is set: $v")
-    //       case seq: Seq[_] if seq.nonEmpty    => println(s"$name is set: $seq")
-    //       case map: Map[_, _] if map.nonEmpty => println(s"$name is set: $map")
-    //       case _                              => // field not set
-    //     }
-    // }
-
     val setFields = client.getSetFields(msg1)
 
     setFields.foreach {
       case (fieldName, value) =>
         println(s"Sending field $fieldName with value $value")
         client.sendMessage(fieldName, value)
-
     }
+
+    Files.write(
+      Paths.get("/app/scala/src/generated/example.txt"),
+      "Hello Scala!".getBytes(StandardCharsets.UTF_8)
+    )
 
     // Test for runtime
     import RuntimeOptionalUpdater._

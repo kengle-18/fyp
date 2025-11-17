@@ -37,6 +37,7 @@ services:
       - proto-sync
     volumes:
       - ./scala/src/main/test:/scala-dest-test:ro
+      - ./analyzer:/app/scala/src/generated
     environment:
       - MAIN_CLASS=com.example.Main
 
@@ -49,10 +50,13 @@ services:
       - SERVER_PORT=50051
       - CONFIG_DIR=/scala-dest-test
       - CONFIG_FILE=config.txt
+      - CONFIG_APP_TEXT_DIR=/app/scala/src/generated
+      - CONFIG_APP_TEXT_FILE=scalaClient.txt
     depends_on:
       - scala-server
     volumes:
       - ./scala/src/main/test:/scala-dest-test:ro
+      - ./analyzer:/app/scala/src/generated
   scala-server:
     build: ./scala
     container_name: scala-server

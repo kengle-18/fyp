@@ -40,3 +40,6 @@ using grpc::Status;
 using com::example::Greeter;
 using com::example::HelloRequest;
 using com::example::HelloReply;
+
+using com::example::UniversalMessage;
+using com::example::UniversalTester;
