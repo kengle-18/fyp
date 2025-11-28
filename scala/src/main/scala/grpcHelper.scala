@@ -10,6 +10,11 @@ import java.nio.file.{Files, Path, Paths}
 // Import the generated ScalaPB classes
 import com.example.base._ // adjust based on the generated folder
 
+sealed trait Loggable
+case class FullMessage(message: UniversalMessage) extends Loggable
+case class SingleField(fieldName: String, value: Option[Any]) extends Loggable
+case class SimpleString(message: String) extends Loggable
+
 // 1️⃣ Server Implementation
 class UniversalTesterImpl extends UniversalTesterGrpc.UniversalTester {
 
@@ -95,7 +100,7 @@ class GrpcClient(host: String, port: Int) {
         case (map: Map[_, _], _) if map.nonEmpty => Some(map) // Map field
         case _                                   => None // Not set
       }
-    println(s"Sent field $fieldName with value $value, got response: $responseField")
+    // println(s"Sent field $fieldName with value $value, got response: $responseField")
     (fieldName, responseField)
   }
 
@@ -110,7 +115,8 @@ class GrpcClient(host: String, port: Int) {
     // The message to send to server
     writeToFile(
       headerMessage = s"=== Sending full message to server ===",
-      universalmessageToSend = message,
+      endingMessage = s"=== End of full message ===",
+      data = FullMessage(message),
       dirPath = dirPath,
       fullFilePath = fullFilePath,
       appendMode = false
@@ -120,24 +126,43 @@ class GrpcClient(host: String, port: Int) {
     val reponseAll: UniversalMessage = blockingStub.sendUniversal(message)
     writeToFile(
       headerMessage = s"=== Response from server ===",
-      universalmessageToSend = reponseAll,
+      endingMessage = s"=== End of full message ===",
+      data = FullMessage(reponseAll),
       dirPath = dirPath,
       fullFilePath = fullFilePath,
       appendMode = true
     )
 
     // Send each set field individually
+    writeToFile(
+      data = SimpleString("=== Response for seding individual fields to server ==="),
+      dirPath = dirPath,
+      fullFilePath = fullFilePath,
+      appendMode = true
+    )
     setFields.foreach {
       case (fieldName, value) =>
         // println(s"Sending field $fieldName with value $value")
-        val responseIndividualFields = sendMessage(fieldName, value)
-        writeToFileField(
-          field = responseIndividualFields,
+        val responseIndividualFields: (String, Option[Any]) = sendMessage(fieldName, value)
+
+        /** Same as
+        val (fieldName, valueOpt) = responseIndividualFields
+        val data = SingleField(fieldName, valueOpt)*/
+
+        val data = (SingleField.apply _).tupled(responseIndividualFields)
+        writeToFile(
+          data = data,
           dirPath = dirPath,
           fullFilePath = fullFilePath,
           appendMode = true
         )
     }
+    writeToFile(
+      data = SimpleString("=== End of individual fields ==="),
+      dirPath = dirPath,
+      fullFilePath = fullFilePath,
+      appendMode = true
+    )
 
     println("Sending completed.")
   }
@@ -154,67 +179,45 @@ class GrpcClient(host: String, port: Int) {
       .toSeq
 
   def writeToFile(
-      universalmessageToSend: UniversalMessage,
+      data: Loggable,
       dirPath: Path,
       fullFilePath: String,
       appendMode: Boolean,
-      headerMessage: String = "=== Empty Header===\n"
+      headerMessage: String = "",
+      endingMessage: String = ""
   ): Unit = {
     if (!Files.exists(dirPath))
       Files.createDirectories(dirPath)
-
-    val writer = new BufferedWriter(new FileWriter(fullFilePath, appendMode)) // append mode true, false to overwrite
-    try {
-      if (headerMessage.nonEmpty)
-        writer.write(s"$headerMessage\n")
-
-      writer.write("Message fields:\n")
-
-      universalmessageToSend.productIterator
-        .zip(universalmessageToSend.productElementNames)
-        .foreach {
-          case (Some(value), name) =>
-            writer.write(s"$name: $value\n")
-          case (seq: Seq[_], name) =>
-            writer.write(s"$name: [${seq.mkString(", ")}]\n")
-          case (map: Map[_, _], name) =>
-            writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
-          case (None, name) =>
-            writer.write(s"$name: <not set>\n")
-          case (_, name) =>
-            writer.write(s"$name: \n")
-        }
-    } finally {
-      writer.write("=== End of Message ===\n\n")
-      writer.close()
-    }
-
-  }
-
-  // Individual field writer
-  def writeToFileField(
-      field: (String, Option[Any]),
-      dirPath: Path,
-      fullFilePath: String,
-      appendMode: Boolean,
-      headerMessage: String = "=== Empty Header===\n"
-  ): Unit = {
-    val (fieldName, valueOpt) = field
-    if (!Files.exists(dirPath))
-      Files.createDirectories(dirPath)
-
     val writer = new BufferedWriter(new FileWriter(fullFilePath, appendMode))
     try {
-      if (headerMessage.nonEmpty) writer.write(headerMessage + "\n")
+      if (headerMessage.nonEmpty)
+        writer.write(headerMessage + "\n")
 
-      valueOpt match {
-        case Some(v: Seq[_])    => writer.write(s"$fieldName: [${v.mkString(", ")}]\n")
-        case Some(v: Map[_, _]) => writer.write(s"$fieldName: ${v.mkString("{", ", ", "}")}\n")
-        case Some(v)            => writer.write(s"$fieldName: $v\n")
-        case None               => writer.write(s"$fieldName: <not set>\n")
+      data match {
+        case FullMessage(msg) =>
+          writer.write("Message fields:\n")
+          msg.productIterator.zip(msg.productElementNames).foreach {
+            case (Some(v), name)        => writer.write(s"$name: $v\n")
+            case (seq: Seq[_], name)    => writer.write(s"$name: [${seq.mkString(", ")}]\n")
+            case (map: Map[_, _], name) => writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
+            case (None, name)           => writer.write(s"$name: <not set>\n")
+            case (_, name)              => writer.write(s"$name: \n")
+          }
+
+        case SingleField(name, valueOpt) =>
+          valueOpt match {
+            case Some(v: Seq[_])    => writer.write(s"$name: [${v.mkString(", ")}]\n")
+            case Some(v: Map[_, _]) => writer.write(s"$name: ${v.mkString("{", ", ", "}")}\n")
+            case Some(v)            => writer.write(s"$name: $v\n")
+            case None               => writer.write(s"$name: <not set>\n")
+          }
+
+        case SimpleString(msg) =>
+          writer.write(msg + "\n")
       }
     } finally {
-      writer.write("=== End of Message ===\n\n")
+      if (endingMessage.nonEmpty)
+        writer.write(endingMessage + "\n\n")
       writer.close()
     }
   }
