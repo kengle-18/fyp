@@ -47,15 +47,56 @@ class GrpcClient(host: String, port: Int) {
 
   def shutdown(): Unit = channel.shutdown()
 
-  def sendMessage(fieldName: String, value: Any): Unit = {
+  def sendMessage(fieldName: String, value: Any): (String, Option[Any]) = {
     val msgToSend = fieldName match {
+      // Scalar fields
       case "singleInt"    => UniversalMessage(singleInt = Some(value.asInstanceOf[Int]))
+      case "bigInt"       => UniversalMessage(bigInt = Some(value.asInstanceOf[Long]))
       case "singleString" => UniversalMessage(singleString = Some(value.asInstanceOf[String]))
       case "singleBool"   => UniversalMessage(singleBool = Some(value.asInstanceOf[Boolean]))
-      case _              => throw new IllegalArgumentException(s"Unknown field: $fieldName")
+      case "singleDouble" => UniversalMessage(singleDouble = Some(value.asInstanceOf[Double]))
+      case "singleFloat"  => UniversalMessage(singleFloat = Some(value.asInstanceOf[Float]))
+      case "singleBytes"  => UniversalMessage(singleBytes = Some(value.asInstanceOf[com.google.protobuf.ByteString]))
+
+      // Repeated fields
+      case "repeatedInt"    => UniversalMessage(repeatedInt = value.asInstanceOf[Seq[Int]])
+      case "repeatedString" => UniversalMessage(repeatedString = value.asInstanceOf[Seq[String]])
+      case "repeatedBool"   => UniversalMessage(repeatedBool = value.asInstanceOf[Seq[Boolean]])
+      case "repeatedDouble" => UniversalMessage(repeatedDouble = value.asInstanceOf[Seq[Double]])
+      case "repeatedFloat"  => UniversalMessage(repeatedFloat = value.asInstanceOf[Seq[Float]])
+      case "repeatedBigInt" => UniversalMessage(repeatedBigInt = value.asInstanceOf[Seq[Long]])
+      case "repeatedBytes"  => UniversalMessage(repeatedBytes = value.asInstanceOf[Seq[com.google.protobuf.ByteString]])
+
+      // Map fields
+      case "mapIntString" => UniversalMessage(mapIntString = value.asInstanceOf[Map[Int, String]])
+      case "mapStringInt" => UniversalMessage(mapStringInt = value.asInstanceOf[Map[String, Int]])
+      case "mapIntNested" =>
+        UniversalMessage(mapIntNested = value.asInstanceOf[Map[Int, UniversalMessage.NestedMessage]])
+
+      // Nested message
+      case "nested" => UniversalMessage(nested = Some(value.asInstanceOf[UniversalMessage.NestedMessage]))
+      case "repeatedNested" =>
+        UniversalMessage(repeatedNested = value.asInstanceOf[Seq[UniversalMessage.NestedMessage]])
+
+      // Enum
+      case "status"         => UniversalMessage(status = Some(value.asInstanceOf[UniversalMessage.Status]))
+      case "repeatedStatus" => UniversalMessage(repeatedStatus = value.asInstanceOf[Seq[UniversalMessage.Status]])
+
+      case _ => throw new IllegalArgumentException(s"Unknown field: $fieldName")
     }
     val response: UniversalMessage = blockingStub.sendUniversal(msgToSend)
-    println(s"Sent field $fieldName with value $value, got response: $response")
+
+    val responseField = response.productIterator
+      .zip(response.productElementNames)
+      .find { case (_, name) => name == fieldName }
+      .flatMap {
+        case (Some(v), _)                        => Some(v) // Optional field is set
+        case (seq: Seq[_], _) if seq.nonEmpty    => Some(seq) // Repeated field
+        case (map: Map[_, _], _) if map.nonEmpty => Some(map) // Map field
+        case _                                   => None // Not set
+      }
+    println(s"Sent field $fieldName with value $value, got response: $responseField")
+    (fieldName, responseField)
   }
 
   def sendAllMessages(message: UniversalMessage): Unit = {
@@ -66,13 +107,39 @@ class GrpcClient(host: String, port: Int) {
     val filePath: String = sys.env.getOrElse("CONFIG_APP_TEXT_FILE", "scalaClient.txt")
     val fullFilePath: String = dirPath.resolve(filePath).toString
 
-    writeToFile(universalmessageToSend = message, dirPath = dirPath, fullFilePath = fullFilePath, appendMode = false)
+    // The message to send to server
+    writeToFile(
+      headerMessage = s"=== Sending full message to server ===",
+      universalmessageToSend = message,
+      dirPath = dirPath,
+      fullFilePath = fullFilePath,
+      appendMode = false
+    )
 
+    // Send all set fields in the message
+    val reponseAll: UniversalMessage = blockingStub.sendUniversal(message)
+    writeToFile(
+      headerMessage = s"=== Response from server ===",
+      universalmessageToSend = reponseAll,
+      dirPath = dirPath,
+      fullFilePath = fullFilePath,
+      appendMode = true
+    )
+
+    // Send each set field individually
     setFields.foreach {
       case (fieldName, value) =>
-        println(s"Sending field $fieldName with value $value")
-        sendMessage(fieldName, value)
+        // println(s"Sending field $fieldName with value $value")
+        val responseIndividualFields = sendMessage(fieldName, value)
+        writeToFileField(
+          field = responseIndividualFields,
+          dirPath = dirPath,
+          fullFilePath = fullFilePath,
+          appendMode = true
+        )
     }
+
+    println("Sending completed.")
   }
 
   def getSetFields(message: UniversalMessage): Seq[(String, Any)] =
@@ -90,14 +157,17 @@ class GrpcClient(host: String, port: Int) {
       universalmessageToSend: UniversalMessage,
       dirPath: Path,
       fullFilePath: String,
-      appendMode: Boolean
+      appendMode: Boolean,
+      headerMessage: String = "=== Empty Header===\n"
   ): Unit = {
     if (!Files.exists(dirPath))
       Files.createDirectories(dirPath)
 
     val writer = new BufferedWriter(new FileWriter(fullFilePath, appendMode)) // append mode true, false to overwrite
     try {
-      writer.write(s"=== New gRPC Call ===\n")
+      if (headerMessage.nonEmpty)
+        writer.write(s"$headerMessage\n")
+
       writer.write("Message fields:\n")
 
       universalmessageToSend.productIterator
@@ -114,7 +184,39 @@ class GrpcClient(host: String, port: Int) {
           case (_, name) =>
             writer.write(s"$name: \n")
         }
-    } finally writer.close()
+    } finally {
+      writer.write("=== End of Message ===\n\n")
+      writer.close()
+    }
+
+  }
+
+  // Individual field writer
+  def writeToFileField(
+      field: (String, Option[Any]),
+      dirPath: Path,
+      fullFilePath: String,
+      appendMode: Boolean,
+      headerMessage: String = "=== Empty Header===\n"
+  ): Unit = {
+    val (fieldName, valueOpt) = field
+    if (!Files.exists(dirPath))
+      Files.createDirectories(dirPath)
+
+    val writer = new BufferedWriter(new FileWriter(fullFilePath, appendMode))
+    try {
+      if (headerMessage.nonEmpty) writer.write(headerMessage + "\n")
+
+      valueOpt match {
+        case Some(v: Seq[_])    => writer.write(s"$fieldName: [${v.mkString(", ")}]\n")
+        case Some(v: Map[_, _]) => writer.write(s"$fieldName: ${v.mkString("{", ", ", "}")}\n")
+        case Some(v)            => writer.write(s"$fieldName: $v\n")
+        case None               => writer.write(s"$fieldName: <not set>\n")
+      }
+    } finally {
+      writer.write("=== End of Message ===\n\n")
+      writer.close()
+    }
   }
 
 }
