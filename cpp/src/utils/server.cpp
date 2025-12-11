@@ -2,7 +2,7 @@
 
 void RunServer(const std::string& server_address) {
     // Create service
-    GreeterServiceImpl service;
+    UniversalTesterImpl service;
 
     // Build server
     ServerBuilder builder;

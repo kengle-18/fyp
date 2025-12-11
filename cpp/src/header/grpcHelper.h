@@ -15,6 +15,13 @@ public:
                           HelloReply* reply) override;
 };
 
+class UniversalTesterImpl final : public UniversalTester::Service {
+public:
+    grpc::Status SendUniversal(grpc::ServerContext* context,
+                               const UniversalMessage* request,
+                               UniversalMessage* response) override;
+};
+
 // ===================================
 // GreeterClient (Client-side)
 // ===================================
@@ -32,10 +39,24 @@ class GrpcClient {
 public:
     explicit GrpcClient(std::shared_ptr<grpc::Channel> channel);
 
-    void SendMessage(const std::string& fieldName,
+    void sendMessage(const std::string& fieldName,
                      const google::protobuf::Message& message);
 
     void SendAllMessages(const UniversalMessage& message);
+
+    static bool CopyFieldValue(google::protobuf::Message& dst,
+        const google::protobuf::Message& src,
+        const google::protobuf::FieldDescriptor* field);
+
+    static bool CopySingularField(
+        google::protobuf::Message& dst,
+        const google::protobuf::Message& src,
+        const google::protobuf::FieldDescriptor* field);
+
+    static bool CopyRepeatedField(
+        google::protobuf::Message& dst,
+        const google::protobuf::Message& src,
+        const google::protobuf::FieldDescriptor* field);
 
     std::vector<std::pair<std::string, const google::protobuf::FieldDescriptor*>>
     GetSetFields(const UniversalMessage& message);

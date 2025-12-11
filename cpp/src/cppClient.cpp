@@ -79,7 +79,10 @@ int main(int argc, char** argv) {
     msg.set_status(UniversalMessage::ACTIVE);
     msg.add_repeated_status(UniversalMessage::INACTIVE);
 
-    std::cout << "MSG = \n" << msg.DebugString() << std::endl;
+    std::cout << "MSG = \n" << msg.DebugString() << "\n" << std::endl;
+
+    // Send all fields then individually
+    client.SendAllMessages(msg);
 
     return 0;
 }
