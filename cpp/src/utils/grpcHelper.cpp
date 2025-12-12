@@ -1,4 +1,5 @@
 #include "../header/grpcHelper.h"
+#include "../header/io.h"
 
 // ===================================
 // GreeterServiceImpl (Server-side)
@@ -75,7 +76,8 @@ GrpcClient::GrpcClient(std::shared_ptr<grpc::Channel> channel)
 
 // SendMessage
 void GrpcClient::sendMessage(const std::string& fieldName,
-                             const google::protobuf::Message& message)
+                             const google::protobuf::Message& message,
+                             const std::filesystem::path &filePath)
 {
     UniversalMessage msgToSend;
     const auto* desc = UniversalMessage::descriptor();
@@ -95,8 +97,7 @@ void GrpcClient::sendMessage(const std::string& fieldName,
     Status status = stub_->SendUniversal(&context, msgToSend, &response);
 
     if (status.ok()) {
-        std::cout << "Sent field " << fieldName << "\n";
-        std::cout << "got response:\n" << response.DebugString() << std::endl;
+        FileUtils::appendToFile(filePath.string(),response.DebugString());
     } else {
         std::cerr << "RPC failed: " << status.error_message() << fieldName << "\n";
     }
@@ -200,15 +201,18 @@ bool GrpcClient::CopySingularField(
 }
 
 // SendAllMessages
-void GrpcClient::SendAllMessages(const UniversalMessage& message)
+void GrpcClient::SendAllMessages(const UniversalMessage& message,
+    const std::filesystem::path &cppMessageIndiviualField,
+    const std::filesystem::path &cppResponseFromServer)
 {
+    FileUtils::writeToFile(cppMessageIndiviualField.string(), "");
     auto fields = GetSetFields(message);
     for (auto& [name, _] : fields) {
-        std::cout << "Sending field " << name << "...\n";
-        GrpcClient::sendMessage(name, message);
+        GrpcClient::sendMessage(name, message, cppMessageIndiviualField);
     }
 
-    std::cout << "Sending message full " << std::endl;
+    // Write as a full message
+    // std::cout << "Sending message full " << std::endl;
 
     UniversalMessage reply;
     grpc::ClientContext context;
@@ -221,8 +225,9 @@ void GrpcClient::SendAllMessages(const UniversalMessage& message)
         return;
     }
 
-    std::cout << "Message sent successfully. Server replied with:\n"
-              << reply.DebugString() << std::endl;
+    // std::cout << "Message sent successfully. Server replied with:\n"
+    //           << reply.DebugString() << std::endl;
+    FileUtils::writeToFile(cppResponseFromServer.string(), reply.DebugString());
 
 }
 

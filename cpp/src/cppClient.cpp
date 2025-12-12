@@ -1,6 +1,7 @@
 #include "header/common.h"
 #include "header/grpcHelper.h"
 #include "header/config.h"
+#include "header/io.h"
 
 int main(int argc, char** argv) {
     // Default values (can be overridden by environment variables)
@@ -28,6 +29,12 @@ int main(int argc, char** argv) {
         if (i + 1 < allArgs.size()) merged << ", ";
     }
     std::cout << "📘 All args merged: " << merged.str() << std::endl;
+
+    const char* env = std::getenv("OUTPUT_DIR_GENERATED");
+    std::filesystem::path cppMessageInital = std::filesystem::path(env ? env : ".") / "cppMessageInital.txt";
+    std::filesystem::path cppMessageIndiviualField = std::filesystem::path(env ? env : ".") / "cppMessageIndiviualField.txt";
+    std::filesystem::path cppResponseFromServer = std::filesystem::path(env ? env : ".") / "cppResponseFromServer.txt";
+    
 
     UniversalMessage msg;
 
@@ -79,10 +86,10 @@ int main(int argc, char** argv) {
     msg.set_status(UniversalMessage::ACTIVE);
     msg.add_repeated_status(UniversalMessage::INACTIVE);
 
-    std::cout << "MSG = \n" << msg.DebugString() << "\n" << std::endl;
+    FileUtils::writeToFile(cppMessageInital.string(), msg.DebugString());
 
     // Send all fields then individually
-    client.SendAllMessages(msg);
+    client.SendAllMessages(msg, cppMessageIndiviualField, cppResponseFromServer);
 
     return 0;
 }

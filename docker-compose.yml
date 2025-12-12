@@ -93,6 +93,7 @@ services:
       - SERVER_PORT=50051
       - CONFIG_DIR=/cpp-dest-test
       - CONFIG_FILE=config.txt
+      - OUTPUT_DIR_GENERATED=/app/cpp/src
     command: ["/app/client"]  # Override default CMD to run client
     depends_on:
       - cpp-server
@@ -109,6 +110,7 @@ services:
     container_name: cpp-server
     environment:
       - SERVER_PORT=50051
+      - OUTPUT_DIR_GENERATED=/app/cpp/src
     command: ["/app/server"]  # Explicitly run server (matches default CMD)
     depends_on:
       - proto-sync

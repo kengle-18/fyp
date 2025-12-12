@@ -40,9 +40,12 @@ public:
     explicit GrpcClient(std::shared_ptr<grpc::Channel> channel);
 
     void sendMessage(const std::string& fieldName,
-                     const google::protobuf::Message& message);
+                     const google::protobuf::Message& message,
+                     const std::filesystem::path &filePath);
 
-    void SendAllMessages(const UniversalMessage& message);
+    void SendAllMessages(const UniversalMessage& message,
+                         const std::filesystem::path &filePath,
+                         const std::filesystem::path &filePath2);
 
     static bool CopyFieldValue(google::protobuf::Message& dst,
         const google::protobuf::Message& src,
