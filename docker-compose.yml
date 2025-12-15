@@ -2,7 +2,24 @@ services:
   python-app:
     build: ./python
     container_name: python-app
-    command: python hello.py # The command to run the application
+    command: checkConfig.py
+    volumes:
+      - ./test:/app/src/test:ro
+      - ./python/src/test:/app/src/test
+    environment:
+      - CONFIG_DIR=/app/src/test
+      - DEFAULT_CONFIG_FILE=config.txt
+    depends_on:
+      - proto-sync
+    healthcheck:
+      test: ["CMD", "python", "/app/src/checkConfig.py"]
+      interval: 5s
+      retries: 3
+      timeout: 1s
+  python-app2:
+    build: ./python
+    container_name: python-app2
+    command: test.py
   proto-sync:
     image: alpine:latest
     container_name: proto-sync
@@ -13,13 +30,15 @@ services:
       - ./cpp/src/protobuf:/cpp-dest-proto           # Destination: cpp proto files
       - ./scala/src/main/test:/scala-dest-test       # Destination: scala test files
       - ./scala/src/main/protobuf:/scala-dest-proto  # Destination: scala proto files
+      - ./python/src/test:/python-dest-test          # Destination: python test files
     command: >
       sh -c "
-      mkdir -p /cpp-dest-test /cpp-dest-proto /scala-dest-test /scala-dest-proto;
+      mkdir -p /cpp-dest-test /cpp-dest-proto /scala-dest-test /scala-dest-proto /python-dest-test;
       
       if [ -d /test-source ] && [ \"\$(ls -A /test-source 2>/dev/null)\" ]; then
         cp -r /test-source/* /cpp-dest-test/;
         cp -r /test-source/* /scala-dest-test/;
+        cp -r /test-source/* /python-dest-test/;
       fi
       
       if [ -d /proto-source ] && [ \"\$(ls -A /proto-source 2>/dev/null)\" ]; then
@@ -33,8 +52,10 @@ services:
     build: ./scala
     container_name: scala-app
     depends_on:
-      - python-app
-      - proto-sync
+      python-app:
+        condition: service_healthy
+      proto-sync:
+        condition: service_started
     volumes:
       - ./scala/src/main/test:/scala-dest-test:ro
       - ./analyzer:/app/scala/src/generated
@@ -64,8 +85,10 @@ services:
       - MAIN_CLASS=com.example.ScalaServer
       - SERVER_PORT=50051
     depends_on:
-      - python-app
-      - proto-sync
+      python-app:
+        condition: service_healthy
+      proto-sync:
+        condition: service_started
     ports:
       - "50051:50051"
 
@@ -113,8 +136,10 @@ services:
       - OUTPUT_DIR_GENERATED=/app/cpp/src
     command: ["/app/server"]  # Explicitly run server (matches default CMD)
     depends_on:
-      - proto-sync
-      - python-app
+      python-app:
+        condition: service_healthy
+      proto-sync:
+        condition: service_started
     ports:
       - "50052:50051"  # Map to different host port to avoid conflict with Scala
     volumes:

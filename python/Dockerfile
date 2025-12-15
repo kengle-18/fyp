@@ -5,7 +5,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy your Python script into the container
-COPY src/ ./src/
+COPY src/ .
 
 # Run your script automatically when the container starts
 ENTRYPOINT ["python"]
+ 
