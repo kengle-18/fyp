@@ -53,7 +53,7 @@ services:
     container_name: scala-app
     depends_on:
       python-app:
-        condition: service_healthy
+        condition: service_completed_successfully
       proto-sync:
         condition: service_started
     volumes:
@@ -86,7 +86,7 @@ services:
       - SERVER_PORT=50051
     depends_on:
       python-app:
-        condition: service_healthy
+        condition: service_completed_successfully
       proto-sync:
         condition: service_started
     ports:
@@ -117,10 +117,13 @@ services:
       - CONFIG_DIR=/cpp-dest-test
       - CONFIG_FILE=config.txt
       - OUTPUT_DIR_GENERATED=/app/cpp/src
+      - OUTPUT_FILE_CPP_MESSAGE_INITAL=cppMessageInital.txt
+      - OUTPUT_FILE_CPP_MESSAGE_INDIVIDUAL_FIELD=cppMessageIndiviualField.txt
+      - OUTPUT_FILE_CPP_RESPONSE_FROM_SERVER=cppResponseFromServer.txt
     command: ["/app/client"]  # Override default CMD to run client
     depends_on:
-      - cpp-server
-      - proto-sync
+      cpp-server:
+        condition: service_started
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
       - ./cpp/src/generated:/app/src/generated
@@ -137,7 +140,7 @@ services:
     command: ["/app/server"]  # Explicitly run server (matches default CMD)
     depends_on:
       python-app:
-        condition: service_healthy
+        condition: service_completed_successfully
       proto-sync:
         condition: service_started
     ports:

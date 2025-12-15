@@ -31,9 +31,17 @@ int main(int argc, char** argv) {
     std::cout << "📘 All args merged: " << merged.str() << std::endl;
 
     const char* env = std::getenv("OUTPUT_DIR_GENERATED");
-    std::filesystem::path cppMessageInital = std::filesystem::path(env ? env : ".") / "cppMessageInital.txt";
-    std::filesystem::path cppMessageIndiviualField = std::filesystem::path(env ? env : ".") / "cppMessageIndiviualField.txt";
-    std::filesystem::path cppResponseFromServer = std::filesystem::path(env ? env : ".") / "cppResponseFromServer.txt";
+    const char* fileEnv1 = std::getenv("OUTPUT_FILE_CPP_MESSAGE_INITAL");
+    const char* fileEnv2 = std::getenv("OUTPUT_FILE_CPP_MESSAGE_INDIVIDUAL_FIELD");
+    const char* fileEnv3 = std::getenv("OUTPUT_FILE_CPP_RESPONSE_FROM_SERVER");
+
+    std::filesystem::path outputFile1 = fileEnv1 ? std::filesystem::path(fileEnv1) : std::filesystem::path("default.txt");
+    std::filesystem::path outputFile2 = fileEnv2 ? std::filesystem::path(fileEnv2) : std::filesystem::path("default.txt");
+    std::filesystem::path outputFile3 = fileEnv3 ? std::filesystem::path(fileEnv3) : std::filesystem::path("default.txt");
+
+    std::filesystem::path cppMessageInital = std::filesystem::path(env ? env : ".") / outputFile1;
+    std::filesystem::path cppMessageIndiviualField = std::filesystem::path(env ? env : ".") / outputFile2;
+    std::filesystem::path cppResponseFromServer = std::filesystem::path(env ? env : ".") / outputFile3;
     
 
     UniversalMessage msg;
@@ -41,6 +49,7 @@ int main(int argc, char** argv) {
     //set all the fields manually
 
     // ---------- Scalar fields ----------
+    msg.set_single_int(7);
     msg.set_single_int(42);
     msg.set_big_int(123456789L);
     msg.set_single_string("hello");
