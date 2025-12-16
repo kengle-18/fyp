@@ -19,6 +19,34 @@ message User {
   int32 age = 2;
 }
 
+/*
+single_int --> --si
+big_int --> --sbi
+single_string --> --ss
+single_bool --> --sb
+single_double --> --sd
+single_float --> --sf
+single_bytes --> --sbts
+
+repeated_int --> --ri
+repeated_string --> --rs
+repeated_bool --> --rb
+repeated_double --> --rd
+repeated_float --> --rf
+repeated_big_int --> --rbi
+repeated_bytes --> --rbts
+
+map_int_string --> --mis
+map_string_int --> --msi
+map_int_nested --> --min
+
+nested --> --n
+repeated_nested --> --rn
+
+status --> --x
+repeated_status --> --rx
+
+*/
 
 message UniversalMessage {
   // ---------- Scalar Fields (Optional) ----------

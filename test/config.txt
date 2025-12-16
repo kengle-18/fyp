@@ -1,2 +1,2 @@
---d 12399 --s "" 
---g ssss
+--si 7231 --sbi 123456789 --ss "hello" --sb true --sd 3.14 --sf 2.718 --sbts "bytes"
+--g 4

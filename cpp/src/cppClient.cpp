@@ -17,17 +17,6 @@ int main(int argc, char** argv) {
 
     Config config(argc, argv);
 
-    auto allArgs = config.getAllArgsInLine();
-
-    std::cout << "Command-line Arguments:\n";
-    for (size_t line = 0; line < allArgs.size(); ++line) {
-        std::cout << "Line " << line << ": ";
-        for (const auto& token : allArgs[line]) {
-            std::cout << "[" << token << "] ";
-        }
-        std::cout << "\n";
-    }
-
     const char* env = std::getenv("OUTPUT_DIR_GENERATED");
     const char* fileEnv1 = std::getenv("OUTPUT_FILE_CPP_MESSAGE_INITAL");
     const char* fileEnv2 = std::getenv("OUTPUT_FILE_CPP_MESSAGE_INDIVIDUAL_FIELD");
@@ -42,19 +31,26 @@ int main(int argc, char** argv) {
     std::filesystem::path cppResponseFromServer = std::filesystem::path(env ? env : ".") / outputFile3;
     
 
+    auto allArgs = config.getAllArgsInLine();
     UniversalMessage msg;
+
+    // std::cout << "Command-line Arguments:\n";
+    for (size_t line = 0; line < allArgs.size(); ++line) {
+        // std::cout << "Line " << line << ": " << std::endl;
+        client.setFieldsWithConfigValues(allArgs[line], msg);
+    }
 
     //set all the fields manually
 
     // ---------- Scalar fields ----------
-    msg.set_single_int(7);
-    msg.set_single_int(42);
-    msg.set_big_int(123456789L);
-    msg.set_single_string("hello");
-    msg.set_single_bool(true);
-    msg.set_single_double(3.14);
-    msg.set_single_float(2.718f);
-    msg.set_single_bytes("bytes");  // std::string is OK
+    // msg.set_single_int(7);
+    // msg.set_single_int(42);
+    // msg.set_big_int(123456789L);
+    // msg.set_single_string("hello");
+    // msg.set_single_bool(true);
+    // msg.set_single_double(3.14);
+    // msg.set_single_float(2.718f);
+    // msg.set_single_bytes("bytes");  // std::string is OK
 
     // ---------- Repeated fields ----------
     msg.add_repeated_int(1);
@@ -92,6 +88,8 @@ int main(int argc, char** argv) {
     // ---------- Enum ----------
     msg.set_status(UniversalMessage::ACTIVE);
     msg.add_repeated_status(UniversalMessage::INACTIVE);
+
+    // std::cout<< msg.DebugString() << std::endl;
 
     FileUtils::writeToFile(cppMessageInital.string(), msg.DebugString());
 

@@ -35,7 +35,8 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 
 
-
+<!-- remove logs in forground but can see in docker desktop-->
+docker compose up --build -d 
 <!-- build wihout cache  -->
 docker compose build --no-cache
 <!-- Rebuild and Starts all container-->

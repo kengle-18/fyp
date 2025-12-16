@@ -252,3 +252,83 @@ GrpcClient::GetSetFields(const UniversalMessage& message)
     }
     return out;
 }
+
+void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues, UniversalMessage& message) {
+    for (size_t i = 0; i + 1 < configValues.size(); i += 2) {
+        std::string& flag = configValues[i];
+        const std::string& value = configValues[i + 1];
+
+        // std::cout << "flag: " << flag << ", Value: " << value << "\n";
+
+        std::vector<char> chars = extractCharsFromFlag(flag);
+        // std::cout << "Extracted characters: ";
+        // for (char c : chars) {
+        //     std::cout << c << " ";
+        // }
+        // std::cout << std::endl;
+
+        // set singular fields
+        switch (chars[0]) {
+            case 's':
+                flag.erase(0, 1); // remove 's' from the flag
+                helperSetAllIndividualFields(message, flag, value);
+                break;
+            default:
+                std::cerr << "Unknown flag prefix: " << chars[0] << "\n";
+                break;
+        }
+
+        if (value.empty()){
+            std::cout << "Empty value for flag: " << flag << ", skipping.\n";
+        }
+        // std::cout << message.DebugString() << std::endl;
+    }
+}
+
+// For setting individual fields
+void GrpcClient::helperSetAllIndividualFields(UniversalMessage& message, std::string flagToDifferiateSingularTypes, std::string value) {
+    // std::cout << flagToDifferiateSingularTypes << ": " << value << "\n";
+    
+    if (flagToDifferiateSingularTypes == "i") {
+        // std::cout << "set_set_single_int\n";
+        message.set_single_int(std::stoi(value));
+    } else if (flagToDifferiateSingularTypes == "bi") {
+        // std::cout << "set_big_int\n";
+        message.set_big_int(std::stol(value));
+    } else if (flagToDifferiateSingularTypes == "s") {
+        // std::cout << "set_single_string\n";
+        message.set_single_string(value);
+    } else if (flagToDifferiateSingularTypes == "b") {
+        // std::cout << "set_single_bool\n";
+        if (value == "true"){
+            message.set_single_bool(true);
+        }
+        else if (value == "false"){
+            message.set_single_bool(false);
+        }
+    } else if (flagToDifferiateSingularTypes == "d") {
+        // std::cout << "set_single_double\n";
+        message.set_single_double(std::stod(value));
+    } else if (flagToDifferiateSingularTypes == "f") {
+        // std::cout << "set_single_float\n";
+        message.set_single_float(std::stof(value));
+    } else if (flagToDifferiateSingularTypes == "bts") {
+        // std::cout << "set_single_bytes\n";
+        message.set_single_bytes(value);
+    } else {
+        std::cerr << "Unknown flag type: " << flagToDifferiateSingularTypes << "\n";
+    }
+}
+
+std::vector<char> GrpcClient::extractCharsFromFlag(std::string& input){
+    std::vector<char> result;
+
+    if (input.rfind("--", 0) == 0) {  // rfind with pos 0 checks if string starts with "--"
+        input.erase(0, 2);            // remove the first two characters from index 0 
+    }
+    for (char c : input) {
+        result.push_back(c);
+    }
+
+    return result;
+}

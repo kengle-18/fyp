@@ -64,6 +64,12 @@ public:
     std::vector<std::pair<std::string, const google::protobuf::FieldDescriptor*>>
     GetSetFields(const UniversalMessage& message);
 
+    void setFieldsWithConfigValues(std::vector<std::string>, UniversalMessage& message);
+
+    void helperSetAllIndividualFields(UniversalMessage& message, std::string flag, std::string value);
+
+    std::vector<char> extractCharsFromFlag(std::string& input);
+
 private:
     std::unique_ptr<UniversalTester::Stub> stub_;
 };
