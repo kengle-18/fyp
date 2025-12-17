@@ -1,5 +1,6 @@
 #include "../header/grpcHelper.h"
 #include "../header/io.h"
+#include <algorithm>
 
 // ===================================
 // GreeterServiceImpl (Server-side)
@@ -258,7 +259,7 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
         std::string& flag = configValues[i];
         const std::string& value = configValues[i + 1];
 
-        std::cout << "flag: " << flag << ", Value: " << value << "\n";
+        // std::cout << "flag: " << flag << ", Value: " << value << "\n";
 
         std::vector<char> chars = extractCharsFromFlag(flag);
         char prefix = chars[0];
@@ -283,6 +284,9 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
                 break;
             case 'n':
                 helperSetNestedFields(message, flag, value);
+                break;
+            case 'x':
+                helperSetStatusFields(message, flag, value);
                 break;
             default:
                 std::cerr << "Unknown flag prefix: " << chars[0] << "\n";
@@ -360,10 +364,37 @@ void GrpcClient::helperSetAllRepeatedFields(UniversalMessage& message, std::stri
     } else if (flagToDifferiateRepeatedTypes == "bts") {
         // std::cout << "add_repeated_bytes\n";
         message.add_repeated_bytes(value);
+    } else if (flagToDifferiateRepeatedTypes == "nsi") {
+        // for repeated nested
+        auto keyVal = helperGetMapKeyAndValueFromString(value);
+        auto* repeatedNested = message.add_repeated_nested(); 
+        if (!keyVal.first.empty()){
+            repeatedNested->set_name(keyVal.first); 
+        }
+        if(!keyVal.second.empty()){
+            repeatedNested->set_value(std::stoi(keyVal.second));
+        }
+    } else if (flagToDifferiateRepeatedTypes == "x") {
+        std::transform(value.begin(), value.end(), value.begin(), ::toupper);
+        // std::cout<< value << std::endl;
+
+        // first is the map key of caps input, second is the UniversalMessage 
+        auto it = statusMap.find(value);
+        if (it != statusMap.end()) {
+            message.add_repeated_status(it->second);
+        } else {
+            std::cerr << "Unknown status value: " << value << ", setting to UNKNOWN\n";
+        }
     } else {
         std::cerr << "Unknown flag type: " << flagToDifferiateRepeatedTypes << "\n";
     }
 }
+
+const std::unordered_map<std::string, UniversalMessage::Status> GrpcClient::statusMap = {
+    {"UNKNOWN", UniversalMessage::UNKNOWN},
+    {"ACTIVE", UniversalMessage::ACTIVE},
+    {"INACTIVE", UniversalMessage::INACTIVE}
+};
 
 void GrpcClient::helperSetAllMapFields(UniversalMessage& message, std::string flagToDifferiateMapTypes, std::string value){
     // std::cout << flagToDifferiateMapTypes << ": " << value << std::endl;
@@ -421,6 +452,22 @@ void GrpcClient::helperSetNestedFields(UniversalMessage& message, std::string fl
         std::cerr << "Unknown flag type: " << flag << "\n";
     }
 }
+
+ void GrpcClient::helperSetStatusFields(UniversalMessage& message, std::string flag, std::string value){
+    // std::cout << flag << ": " << value << std::endl;
+
+    std::transform(value.begin(), value.end(), value.begin(), ::toupper);
+    // std::cout<< value << std::endl;
+
+    // first is the map key of caps input, second is the UniversalMessage 
+    auto it = statusMap.find(value);
+    if (it != statusMap.end()) {
+        message.set_status(it->second);
+    } else {
+        std::cerr << "Unknown status value: " << value << ", setting to UNKNOWN\n";
+    }
+    
+ }
 
 GrpcClient::ParsedString GrpcClient::parseString(const std::string& input){
     ParsedString result;

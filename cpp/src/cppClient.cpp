@@ -78,16 +78,16 @@ int main(int argc, char** argv) {
     // nested->set_value(99);
 
     // ---------- Repeated nested ----------
-    auto* r1 = msg.add_repeated_nested();
-    r1->set_name("r1");
+    // auto* r1 = msg.add_repeated_nested();
+    // r1->set_name("r1");
 
-    auto* r2 = msg.add_repeated_nested();
-    r2->set_name("r2");
-    r2->set_value(2);
+    // auto* r2 = msg.add_repeated_nested();
+    // r2->set_name("r2");
+    // r2->set_value(2);
 
     // ---------- Enum ----------
-    msg.set_status(UniversalMessage::ACTIVE);
-    msg.add_repeated_status(UniversalMessage::INACTIVE);
+    // msg.set_status(UniversalMessage::ACTIVE);
+    // msg.add_repeated_status(UniversalMessage::INACTIVE);
 
     // std::cout<< msg.DebugString() << std::endl;
 

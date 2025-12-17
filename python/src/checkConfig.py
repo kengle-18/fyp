@@ -41,11 +41,11 @@ def process(line):
             raise ValueError(f"Flag '{token}' has no value")
         
         value = tokens[i+1]
-        if "," in value:
+        if "," in value and "--m" in token:
             first, _ = value.split(",", 1)
             if not first.strip():
                 raise ValueError(
-                    f"First argument before comma for value is missing which is the key for map cant be empty"
+                    f"First argument before comma missing which is the key for map that cant be empty"
                 )
         i += 2
     return

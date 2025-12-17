@@ -74,6 +74,8 @@ public:
 
     void helperSetNestedFields(UniversalMessage& message, std::string flag, std::string value);
 
+    void helperSetStatusFields(UniversalMessage& message, std::string flag, std::string value);
+
     std::pair<std::string, std::string> helperGetMapKeyAndValueFromString(std::string value);
 
     struct ParsedString {
@@ -88,4 +90,6 @@ public:
 
 private:
     std::unique_ptr<UniversalTester::Stub> stub_;
+
+    static const std::unordered_map<std::string, UniversalMessage::Status> statusMap;
 };
