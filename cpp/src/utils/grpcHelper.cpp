@@ -261,6 +261,8 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
         // std::cout << "flag: " << flag << ", Value: " << value << "\n";
 
         std::vector<char> chars = extractCharsFromFlag(flag);
+        char prefix = chars[0];
+        flag.erase(0, 1);
         // std::cout << "Extracted characters: ";
         // for (char c : chars) {
         //     std::cout << c << " ";
@@ -268,10 +270,16 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
         // std::cout << std::endl;
 
         // set singular fields
-        switch (chars[0]) {
+        switch (prefix) {
             case 's':
-                flag.erase(0, 1); // remove 's' from the flag
                 helperSetAllIndividualFields(message, flag, value);
+                break;
+            case 'r':
+                helperSetAllRepeatedFields(message, flag, value);
+                break;
+            case 'm':
+            // // Only can store one key--> value, write again will cause the values to overwrite
+                helperSetAllMapFields(message, flag, value);
                 break;
             default:
                 std::cerr << "Unknown flag prefix: " << chars[0] << "\n";
@@ -318,6 +326,70 @@ void GrpcClient::helperSetAllIndividualFields(UniversalMessage& message, std::st
     } else {
         std::cerr << "Unknown flag type: " << flagToDifferiateSingularTypes << "\n";
     }
+}
+
+void GrpcClient::helperSetAllRepeatedFields(UniversalMessage& message, std::string flagToDifferiateRepeatedTypes, std::string value){
+    // std::cout << flagToDifferiateRepeatedTypes << ": " << value << std::endl;
+
+    if (flagToDifferiateRepeatedTypes == "i") {
+        // std::cout << "add_repeated_int\n";
+        message.add_repeated_int(std::stoi(value));
+    } else if (flagToDifferiateRepeatedTypes == "bi") {
+        // std::cout << "add_repeated_big_int\n";
+        message.add_repeated_big_int(std::stol(value));
+    } else if (flagToDifferiateRepeatedTypes == "s") {
+        // std::cout << "add_repeated_string\n";
+        message.add_repeated_string(value);
+    } else if (flagToDifferiateRepeatedTypes == "b") {
+        // std::cout << "add_repeated_bool\n";
+        if (value == "true"){
+            message.add_repeated_bool(true);
+        }
+        else if (value == "false"){
+            message.add_repeated_bool(false);
+        }
+    } else if (flagToDifferiateRepeatedTypes == "d") {
+        // std::cout << "add_repeated_double\n";
+        message.add_repeated_double(std::stod(value));
+    } else if (flagToDifferiateRepeatedTypes == "f") {
+        // std::cout << "add_repeated_float\n";
+        message.add_repeated_float(std::stof(value));
+    } else if (flagToDifferiateRepeatedTypes == "bts") {
+        // std::cout << "add_repeated_bytes\n";
+        message.add_repeated_bytes(value);
+    } else {
+        std::cerr << "Unknown flag type: " << flagToDifferiateRepeatedTypes << "\n";
+    }
+}
+
+void GrpcClient::helperSetAllMapFields(UniversalMessage& message, std::string flagToDifferiateMapTypes, std::string value){
+    std::cout << flagToDifferiateMapTypes << ": " << value << std::endl;
+
+    auto keyVal = helperGetMapKeyAndValueFromString(value);
+    if (keyVal.first.empty() && keyVal.second.empty()){
+        std::cout << "Need nested helper to split the config" << std::endl;
+    }
+
+    if (flagToDifferiateMapTypes == "is") {
+        // Add key (int) --> value (string)
+        // std::cout << "mutable_map_int_string\n";
+        (*message.mutable_map_int_string())[std::stoi(keyVal.first)] = keyVal.second;
+    } else if (flagToDifferiateMapTypes == "si") {
+        // std::cout << "mutable_map_string_int\n";
+        (*message.mutable_map_string_int())[keyVal.first] = std::stoi(keyVal.second);
+    } else {
+        std::cerr << "Unknown flag type: " << flagToDifferiateMapTypes << "\n";
+    }
+}
+
+std::pair<std::string, std::string> GrpcClient::helperGetMapKeyAndValueFromString(std::string value){
+    size_t pos = value.find(',');
+    if (pos == std::string::npos){
+        return {"", ""};
+    }
+    std::string key = value.substr(0, pos);
+    std::string val = value.substr(pos + 1);
+    return {key, val};
 }
 
 std::vector<char> GrpcClient::extractCharsFromFlag(std::string& input){

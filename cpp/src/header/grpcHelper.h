@@ -68,6 +68,12 @@ public:
 
     void helperSetAllIndividualFields(UniversalMessage& message, std::string flag, std::string value);
 
+    void helperSetAllRepeatedFields(UniversalMessage& message, std::string flag, std::string value);
+
+    void helperSetAllMapFields(UniversalMessage& message, std::string flag, std::string value);
+
+    std::pair<std::string, std::string> helperGetMapKeyAndValueFromString(std::string value);
+
     std::vector<char> extractCharsFromFlag(std::string& input);
 
 private:

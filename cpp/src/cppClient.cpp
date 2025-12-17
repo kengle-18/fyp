@@ -53,20 +53,20 @@ int main(int argc, char** argv) {
     // msg.set_single_bytes("bytes");  // std::string is OK
 
     // ---------- Repeated fields ----------
-    msg.add_repeated_int(1);
-    msg.add_repeated_int(2);
+    // msg.add_repeated_int(1);
+    // msg.add_repeated_int(2);
 
-    msg.add_repeated_string("foo");
-    msg.add_repeated_bool(true);
-    msg.add_repeated_double(1.1);
-    msg.add_repeated_float(2.2f);
-    msg.add_repeated_big_int(1000000000L);
-    msg.add_repeated_bytes("bar");
+    // msg.add_repeated_string("foo");
+    // msg.add_repeated_bool(true);
+    // msg.add_repeated_double(1.1);
+    // msg.add_repeated_float(2.2f);
+    // msg.add_repeated_big_int(1000000000L);
+    // msg.add_repeated_bytes("bar");
 
     // ---------- Map fields ----------
     // Maps behave like std::map, Proto generates map-like API
-    (*msg.mutable_map_int_string())[1] = "one";
-    (*msg.mutable_map_string_int())["a"] = 100;
+    // (*msg.mutable_map_int_string())[1] = "one";
+    // (*msg.mutable_map_string_int())["a"] = 100;
 
     auto& nestedMap = (*msg.mutable_map_int_nested())[1];
     nestedMap.set_name("nested1");
