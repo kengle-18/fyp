@@ -72,7 +72,17 @@ public:
 
     void helperSetAllMapFields(UniversalMessage& message, std::string flag, std::string value);
 
+    void helperSetNestedFields(UniversalMessage& message, std::string flag, std::string value);
+
     std::pair<std::string, std::string> helperGetMapKeyAndValueFromString(std::string value);
+
+    struct ParsedString {
+        std::string first;
+        std::string innerKey;
+        std::string innerValue;
+    };
+
+    ParsedString parseString(const std::string& input);
 
     std::vector<char> extractCharsFromFlag(std::string& input);
 

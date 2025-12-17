@@ -39,6 +39,14 @@ def process(line):
             raise ValueError(f"Expected flag, got '{token}'")
         if i + 1 >= len(tokens):
             raise ValueError(f"Flag '{token}' has no value")
+        
+        value = tokens[i+1]
+        if "," in value:
+            first, _ = value.split(",", 1)
+            if not first.strip():
+                raise ValueError(
+                    f"First argument before comma for value is missing which is the key for map cant be empty"
+                )
         i += 2
     return
 

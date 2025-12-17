@@ -68,14 +68,14 @@ int main(int argc, char** argv) {
     // (*msg.mutable_map_int_string())[1] = "one";
     // (*msg.mutable_map_string_int())["a"] = 100;
 
-    auto& nestedMap = (*msg.mutable_map_int_nested())[1];
-    nestedMap.set_name("nested1");
-    nestedMap.set_value(10);
+    // auto& nestedMap = (*msg.mutable_map_int_nested())[1];
+    // nestedMap.set_name("nested1");
+    // nestedMap.set_value(10);
 
     // ---------- Nested ----------
-    auto* nested = msg.mutable_nested();
-    nested->set_name("top");
-    nested->set_value(99);
+    // auto* nested = msg.mutable_nested();
+    // nested->set_name("top");
+    // nested->set_value(99);
 
     // ---------- Repeated nested ----------
     auto* r1 = msg.add_repeated_nested();

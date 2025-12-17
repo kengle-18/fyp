@@ -258,7 +258,7 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
         std::string& flag = configValues[i];
         const std::string& value = configValues[i + 1];
 
-        // std::cout << "flag: " << flag << ", Value: " << value << "\n";
+        std::cout << "flag: " << flag << ", Value: " << value << "\n";
 
         std::vector<char> chars = extractCharsFromFlag(flag);
         char prefix = chars[0];
@@ -281,13 +281,16 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
             // // Only can store one key--> value, write again will cause the values to overwrite
                 helperSetAllMapFields(message, flag, value);
                 break;
+            case 'n':
+                helperSetNestedFields(message, flag, value);
+                break;
             default:
                 std::cerr << "Unknown flag prefix: " << chars[0] << "\n";
                 break;
         }
 
         if (value.empty()){
-            std::cout << "Empty value for flag: " << flag << ", skipping.\n";
+            std::cout << "Empty value for flag: " << flag << ", skipping to set the value\n";
         }
         // std::cout << message.DebugString() << std::endl;
     }
@@ -363,12 +366,9 @@ void GrpcClient::helperSetAllRepeatedFields(UniversalMessage& message, std::stri
 }
 
 void GrpcClient::helperSetAllMapFields(UniversalMessage& message, std::string flagToDifferiateMapTypes, std::string value){
-    std::cout << flagToDifferiateMapTypes << ": " << value << std::endl;
+    // std::cout << flagToDifferiateMapTypes << ": " << value << std::endl;
 
     auto keyVal = helperGetMapKeyAndValueFromString(value);
-    if (keyVal.first.empty() && keyVal.second.empty()){
-        std::cout << "Need nested helper to split the config" << std::endl;
-    }
 
     if (flagToDifferiateMapTypes == "is") {
         // Add key (int) --> value (string)
@@ -376,19 +376,98 @@ void GrpcClient::helperSetAllMapFields(UniversalMessage& message, std::string fl
         (*message.mutable_map_int_string())[std::stoi(keyVal.first)] = keyVal.second;
     } else if (flagToDifferiateMapTypes == "si") {
         // std::cout << "mutable_map_string_int\n";
-        (*message.mutable_map_string_int())[keyVal.first] = std::stoi(keyVal.second);
+        auto& mapRef = *message.mutable_map_string_int();
+        auto& entry = mapRef[keyVal.first];
+        if (!keyVal.second.empty()){
+            entry = std::stoi(keyVal.second);
+        }else{
+            // std::cout << "no value" <<std::endl;
+            // std::cout << "Key: " << keyVal.first
+            // << ", Value: " << entry<< std::endl;
+        }
+    }
+    else if (flagToDifferiateMapTypes == "in"){
+        auto parsed = this->parseString(value);
+        // std::cout << parsed.first << ", " << parsed.innerKey << ", " << parsed.innerValue << std::endl;
+        // must have key outer
+        auto& nestedMap = (*message.mutable_map_int_nested())[std::stoi(parsed.first)];
+
+        if (!parsed.innerKey.empty()){
+            nestedMap.set_name(parsed.innerKey);
+        }
+
+        if (!parsed.innerValue.empty()){
+            nestedMap.set_value(std::stoi(parsed.innerValue));
+        }
+
     } else {
         std::cerr << "Unknown flag type: " << flagToDifferiateMapTypes << "\n";
     }
 }
 
+void GrpcClient::helperSetNestedFields(UniversalMessage& message, std::string flag, std::string value){
+    // std::cout << flag << ": " << value << std::endl;
+    auto keyVal = helperGetMapKeyAndValueFromString(value);
+    // std::cout << "first part of value: "<< keyVal.first << ", second part of value: " << keyVal.second << std::endl;
+    if(flag == "si"){
+        auto* nested = message.mutable_nested();
+        if (!keyVal.first.empty()){
+            nested->set_name(keyVal.first);
+        }
+        if (!keyVal.second.empty()){
+            nested->set_value(std::stoi(keyVal.second));
+        }
+    } else {
+        std::cerr << "Unknown flag type: " << flag << "\n";
+    }
+}
+
+GrpcClient::ParsedString GrpcClient::parseString(const std::string& input){
+    ParsedString result;
+    std::stringstream ss(input);
+    std::string part;
+
+     // First part: before first comma
+    if (std::getline(ss, part, ',')) {
+        result.first = part;
+    }
+
+    // Second part: innerkey=inner1
+    if (std::getline(ss, part, ',')) {
+        size_t pos = part.find("=");
+        if (pos != std::string::npos) {
+            result.innerKey = part.substr(pos + 1);
+        }
+    }
+
+    // Third part: innervalue=100
+    if (std::getline(ss, part, ',')) {
+        size_t pos = part.find("=");
+        if (pos != std::string::npos) {
+            result.innerValue = part.substr(pos + 1);
+        }
+    }
+
+    return result;
+}
+
+// Works for nested and map
 std::pair<std::string, std::string> GrpcClient::helperGetMapKeyAndValueFromString(std::string value){
-    size_t pos = value.find(',');
-    if (pos == std::string::npos){
+    size_t firstComma = value.find(',');
+    // No comma found
+    if (firstComma == std::string::npos) {
         return {"", ""};
     }
-    std::string key = value.substr(0, pos);
-    std::string val = value.substr(pos + 1);
+
+    // Check if there is a second comma
+    size_t secondComma = value.find(',', firstComma + 1);
+    if (secondComma != std::string::npos) {
+        return {"", ""};
+    }
+
+    std::string key = value.substr(0, firstComma);
+    std::string val = value.substr(firstComma + 1);
+
     return {key, val};
 }
 
