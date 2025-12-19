@@ -464,7 +464,7 @@ void GrpcClient::helperSetNestedFields(UniversalMessage& message, std::string fl
     if (it != statusMap.end()) {
         message.set_status(it->second);
     } else {
-        std::cerr << "Unknown status value: " << value << ", setting to UNKNOWN\n";
+        std::cerr << "Unknown status value: " << value << ", not setting enum\n";
     }
     
  }

@@ -238,6 +238,10 @@ class GrpcClient(host: String, port: Int) {
           updatedMessage = helperSetAllRepeatedFields(message = updatedMessage, flag = resultFlag, value = value)
         case 'm' =>
           updatedMessage = helperSetAllMapFields(message = updatedMessage, flag = resultFlag, value = value)
+        case 'n' =>
+          updatedMessage = helperSetNestedFields(message = updatedMessage, flag = resultFlag, value = value)
+        case 'x' =>
+          updatedMessage = helperSetStatusFields(message = updatedMessage, flag = resultFlag, value = value)
         case _ => println("Default")
       }
     }
@@ -262,7 +266,7 @@ class GrpcClient(host: String, port: Int) {
   }
 
   def helperSetAllRepeatedFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
-    println(s"Matching flag: '$flag' with value: '$value'")
+    // println(s"Matching flag: '$flag' with value: '$value'")
     val result = flag match {
       case "i"   => message.update(_.repeatedInt :+= value.toInt)
       case "bi"  => message.update(_.repeatedBigInt :+= value.toLong)
@@ -271,7 +275,20 @@ class GrpcClient(host: String, port: Int) {
       case "d"   => message.update(_.repeatedDouble :+= value.toDouble)
       case "f"   => message.update(_.repeatedFloat :+= value.toFloat)
       case "bts" => message.update(_.repeatedBytes :+= com.google.protobuf.ByteString.copyFromUtf8(value))
-      case _     => message
+      case "nsi" =>
+        val keyVal = helperGetMapKeyAndValueFromString(value)
+        message.update(
+          _.repeatedNested :+= UniversalMessage.NestedMessage(name = Option(keyVal._1), value = keyVal._2.toIntOption)
+        )
+      case "x" =>
+        UniversalMessage.Status.fromName(value.toUpperCase) match {
+          case Some(statusEnum) =>
+            message.update(_.repeatedStatus :+= statusEnum) // set the enum
+          case None =>
+            println(s"Unknown enum value, skipping, not setting, $value")
+            message // leave message unchanged
+        }
+      case _ => message
     }
     // println(s"Result after update: $result")
     result
@@ -281,9 +298,6 @@ class GrpcClient(host: String, port: Int) {
     println(s"PlexMatching flag: '$flag' with value: '$value'")
 
     val keyVal = helperGetMapKeyAndValueFromString(value)
-    // val mapKey = keyVal._1
-    // val mapValue = keyVal._2
-    // println(keyVal)
     val result = flag match {
       case "is" => message.update(_.mapIntString := message.mapIntString + (keyVal._1.toInt -> keyVal._2))
       case "si" =>
@@ -291,13 +305,50 @@ class GrpcClient(host: String, port: Int) {
           //default is no input
           message.update(_.mapStringInt := message.mapStringInt + (keyVal._1 -> 0))
         else message.update(_.mapStringInt := message.mapStringInt + (keyVal._1 -> keyVal._2.toInt))
-      // case "in" =>
-      // message.update(
-      //   _.mapIntNested
-      //     .update(value.toInt, UniversalMessage.NestedMessage(name = Some(flag), value = Some(value.toInt))
-      // )
-      // println("later")
+      case "in" =>
+        // To get all the values after = so inner key and value
+        val parts = value.split(",")
+        val outerKey = parts.lift(0).getOrElse("").toInt
+        val innerKey = parts.lift(1).flatMap(_.split("=").lift(1)).getOrElse("")
+        val innerValue = parts.lift(2).flatMap(_.split("=").lift(1)).getOrElse("")
+
+        println(s"first=$outerKey, innerKey=$innerKey, innerValue=$innerValue")
+
+        val nested = UniversalMessage.NestedMessage(name = Option(innerKey), value = innerValue.toIntOption)
+        // Set with the outer key and nested
+        message.update(_.mapIntNested := message.mapIntNested + (outerKey -> nested))
       case _ => message
+    }
+    println(s"Result after update: $result")
+    result
+  }
+
+  def helperSetNestedFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
+    println(s"Matching flag: '$flag' with value: '$value'")
+
+    val keyVal = helperGetMapKeyAndValueFromString(value)
+    val result = flag match {
+      case "si" =>
+        message.update(
+          _.nested := UniversalMessage.NestedMessage(name = Option(keyVal._1), value = keyVal._2.toIntOption)
+        )
+      case _ => message
+    }
+    println(s"Result after update: $result")
+    result
+  }
+
+  def helperSetStatusFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
+    println(s"Matching flag: '$flag' with value: '$value'")
+
+    val statusEnumOption: Option[UniversalMessage.Status] =
+      UniversalMessage.Status.fromName(value.toUpperCase)
+    val result = statusEnumOption match {
+      case Some(statusEnum) =>
+        message.update(_.status := statusEnum) // set the enum
+      case None =>
+        println(s"Unknown enum value, skipping, not setting, $value")
+        message // leave message unchanged
     }
     println(s"Result after update: $result")
     result
