@@ -506,12 +506,6 @@ std::pair<std::string, std::string> GrpcClient::helperGetMapKeyAndValueFromStrin
         return {"", ""};
     }
 
-    // Check if there is a second comma
-    size_t secondComma = value.find(',', firstComma + 1);
-    if (secondComma != std::string::npos) {
-        return {"", ""};
-    }
-
     std::string key = value.substr(0, firstComma);
     std::string val = value.substr(firstComma + 1);
 

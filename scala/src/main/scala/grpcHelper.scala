@@ -6,6 +6,7 @@ import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
 import java.io.{BufferedWriter, FileWriter}
 import java.nio.file.{Files, Path, Paths}
+import scala.collection.mutable.ArrayBuffer
 
 // Import the generated ScalaPB classes
 import com.example.base._ // adjust based on the generated folder
@@ -220,6 +221,108 @@ class GrpcClient(host: String, port: Int) {
         writer.write(endingMessage + "\n\n")
       writer.close()
     }
+  }
+
+  def setFieldsWithConfigValues(configValues: Vector[String], message: UniversalMessage): UniversalMessage = {
+    var updatedMessage: UniversalMessage = message
+    for (Seq(flag, value) <- configValues.grouped(2)) {
+      print(s"flag:$flag, value:$value\n")
+
+      val (prefix, resultFlag) = extractPrefixAndresultFlag(flag)
+      print(s"prefix: $prefix, flag: $resultFlag\n")
+
+      prefix match {
+        case 's' =>
+          updatedMessage = helperSetAllIndividualFields(message = updatedMessage, flag = resultFlag, value = value)
+        case 'r' =>
+          updatedMessage = helperSetAllRepeatedFields(message = updatedMessage, flag = resultFlag, value = value)
+        case 'm' =>
+          updatedMessage = helperSetAllMapFields(message = updatedMessage, flag = resultFlag, value = value)
+        case _ => println("Default")
+      }
+    }
+    println(s"message : $updatedMessage")
+    updatedMessage
+  }
+
+  def helperSetAllIndividualFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
+    // println(s"Matching flag: '$flag' with value: '$value'")
+    val result = flag match {
+      case "i"   => message.update(_.optionalSingleInt := Some(value.toInt))
+      case "bi"  => message.update(_.optionalBigInt := Some(value.toLong))
+      case "s"   => message.update(_.optionalSingleString := Some(value))
+      case "b"   => message.update(_.optionalSingleBool := Some(value.toBoolean))
+      case "d"   => message.update(_.optionalSingleDouble := Some(value.toDouble))
+      case "f"   => message.update(_.optionalSingleFloat := Some(value.toFloat))
+      case "bts" => message.update(_.optionalSingleBytes := Some(com.google.protobuf.ByteString.copyFromUtf8(value)))
+      case _     => message
+    }
+    // println(s"Result after update: $result")
+    result
+  }
+
+  def helperSetAllRepeatedFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
+    println(s"Matching flag: '$flag' with value: '$value'")
+    val result = flag match {
+      case "i"   => message.update(_.repeatedInt :+= value.toInt)
+      case "bi"  => message.update(_.repeatedBigInt :+= value.toLong)
+      case "s"   => message.update(_.repeatedString :+= value)
+      case "b"   => message.update(_.repeatedBool :+= value.toBoolean)
+      case "d"   => message.update(_.repeatedDouble :+= value.toDouble)
+      case "f"   => message.update(_.repeatedFloat :+= value.toFloat)
+      case "bts" => message.update(_.repeatedBytes :+= com.google.protobuf.ByteString.copyFromUtf8(value))
+      case _     => message
+    }
+    // println(s"Result after update: $result")
+    result
+  }
+
+  def helperSetAllMapFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
+    println(s"PlexMatching flag: '$flag' with value: '$value'")
+
+    val keyVal = helperGetMapKeyAndValueFromString(value)
+    // val mapKey = keyVal._1
+    // val mapValue = keyVal._2
+    // println(keyVal)
+    val result = flag match {
+      case "is" => message.update(_.mapIntString := message.mapIntString + (keyVal._1.toInt -> keyVal._2))
+      case "si" =>
+        if (keyVal._2.isEmpty)
+          //default is no input
+          message.update(_.mapStringInt := message.mapStringInt + (keyVal._1 -> 0))
+        else message.update(_.mapStringInt := message.mapStringInt + (keyVal._1 -> keyVal._2.toInt))
+      // case "in" =>
+      // message.update(
+      //   _.mapIntNested
+      //     .update(value.toInt, UniversalMessage.NestedMessage(name = Some(flag), value = Some(value.toInt))
+      // )
+      // println("later")
+      case _ => message
+    }
+    println(s"Result after update: $result")
+    result
+  }
+
+  def extractPrefixAndresultFlag(input: String): (Char, String) = {
+    // Get the prefix
+    val cleaned = if (input.startsWith("--")) input.drop(2) else input
+    val prefix = cleaned(0)
+    // get rest of flag in flag
+    val resultFlag = cleaned.substring(1)
+    // println(s"cleaned: $cleaned, prefix: $prefix, resultFlag: $resultFlag")
+    (prefix, resultFlag)
+  }
+
+  def helperGetMapKeyAndValueFromString(value: String): (String, String) = {
+    val firstComma = value.indexOf(',')
+
+    // No comma found
+    if (firstComma == -1) return ("", "")
+
+    val key = value.substring(0, firstComma)
+    val v = value.substring(firstComma + 1)
+
+    (key, v)
   }
 
 }

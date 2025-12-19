@@ -2,6 +2,7 @@ package com.example
 
 import scala.io.Source
 import java.io.File
+import scala.collection.mutable.ArrayBuffer
 
 object Config {
 
@@ -63,5 +64,14 @@ object Config {
   def getAll(fallbacks: Seq[String] = Seq.empty): Seq[String] = {
     val maxLength = math.max(_args.length, math.max(_fileConfig.size, fallbacks.length))
     (0 until maxLength).map(i => getArg(i, if (i < fallbacks.length) fallbacks(i) else ""))
+  }
+
+  def getAllArgsInLine(): Vector[Vector[String]] = {
+    val allLines =
+      for ((index, value) <- _fileConfig)
+        yield
+        // Split on whitespace
+        value.split("\\s+").toVector
+    allLines.toVector
   }
 }

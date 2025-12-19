@@ -41,6 +41,7 @@ def process(line):
             raise ValueError(f"Flag '{token}' has no value")
         
         value = tokens[i+1]
+        print(f"flag:{token} and value:{value}")
         if "," in value and "--m" in token:
             first, _ = value.split(",", 1)
             if not first.strip():

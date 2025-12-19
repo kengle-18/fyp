@@ -38,58 +38,8 @@ int main(int argc, char** argv) {
     for (size_t line = 0; line < allArgs.size(); ++line) {
         // std::cout << "Line " << line << ": " << std::endl;
         client.setFieldsWithConfigValues(allArgs[line], msg);
+        // Make set one line send one line message
     }
-
-    //set all the fields manually
-
-    // ---------- Scalar fields ----------
-    // msg.set_single_int(7);
-    // msg.set_single_int(42);
-    // msg.set_big_int(123456789L);
-    // msg.set_single_string("hello");
-    // msg.set_single_bool(true);
-    // msg.set_single_double(3.14);
-    // msg.set_single_float(2.718f);
-    // msg.set_single_bytes("bytes");  // std::string is OK
-
-    // ---------- Repeated fields ----------
-    // msg.add_repeated_int(1);
-    // msg.add_repeated_int(2);
-
-    // msg.add_repeated_string("foo");
-    // msg.add_repeated_bool(true);
-    // msg.add_repeated_double(1.1);
-    // msg.add_repeated_float(2.2f);
-    // msg.add_repeated_big_int(1000000000L);
-    // msg.add_repeated_bytes("bar");
-
-    // ---------- Map fields ----------
-    // Maps behave like std::map, Proto generates map-like API
-    // (*msg.mutable_map_int_string())[1] = "one";
-    // (*msg.mutable_map_string_int())["a"] = 100;
-
-    // auto& nestedMap = (*msg.mutable_map_int_nested())[1];
-    // nestedMap.set_name("nested1");
-    // nestedMap.set_value(10);
-
-    // ---------- Nested ----------
-    // auto* nested = msg.mutable_nested();
-    // nested->set_name("top");
-    // nested->set_value(99);
-
-    // ---------- Repeated nested ----------
-    // auto* r1 = msg.add_repeated_nested();
-    // r1->set_name("r1");
-
-    // auto* r2 = msg.add_repeated_nested();
-    // r2->set_name("r2");
-    // r2->set_value(2);
-
-    // ---------- Enum ----------
-    // msg.set_status(UniversalMessage::ACTIVE);
-    // msg.add_repeated_status(UniversalMessage::INACTIVE);
-
-    // std::cout<< msg.DebugString() << std::endl;
 
     FileUtils::writeToFile(cppMessageInital.string(), msg.DebugString());
 
