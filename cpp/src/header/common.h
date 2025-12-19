@@ -14,6 +14,7 @@
 #include <fstream>       // std::ofstream
 #include <filesystem>    // std::filesystem (C++17)
 #include <map>           // std::map
+#include <csignal>       // for system signal
 
 // gRPC / Protobuf
 #include <grpcpp/grpcpp.h>   // Main gRPC API
