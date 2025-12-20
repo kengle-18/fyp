@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory
 import java.io.{BufferedWriter, FileWriter}
 import java.nio.file.{Files, Path, Paths}
 import scala.collection.mutable.ArrayBuffer
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 // Import the generated ScalaPB classes
 import com.example.base._ // adjust based on the generated folder
@@ -108,10 +110,23 @@ class GrpcClient(host: String, port: Int) {
   def sendAllMessages(message: UniversalMessage): Unit = {
     val setFields = getSetFields(message)
 
+    val timestamp: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS")) + "_"
+
     val dir: String = sys.env.getOrElse("CONFIG_APP_TEXT_DIR", "/app/scala/src/generated")
     val dirPath: Path = Paths.get(dir)
-    val filePath: String = sys.env.getOrElse("CONFIG_APP_TEXT_FILE", "scalaClient.txt")
-    val fullFilePath: String = dirPath.resolve(filePath).toString
+
+    // val filePath: String = sys.env.getOrElse("CONFIG_APP_TEXT_FILE", "scalaClient.txt")
+    val scalaMessageInital: String =
+      timestamp + sys.env.getOrElse("OUTPUT_FILE_SCALA_MESSAGE_INITAL", "scalaMessageInital.txt")
+    val scalaMessageIndiviualField: String =
+      timestamp + sys.env.getOrElse("OUTPUT_FILE_SCALA_MESSAGE_INDIVIDUAL_FIELD", "scalaMessageIndiviualField.txt")
+    val scalaResponseFromServer: String =
+      timestamp + sys.env.getOrElse("OUTPUT_FILE_SCALA_RESPONSE_FROM_SERVER", "scalaResponseFromServer.txt")
+
+    // val fullFilePath: String = dirPath.resolve(filePath).toString
+    val scalaMessageInitalPath: String = dirPath.resolve(scalaMessageInital).toString
+    val scalaMessageIndiviualFieldPath: String = dirPath.resolve(scalaMessageIndiviualField).toString
+    val scalaResponseFromServerPath: String = dirPath.resolve(scalaResponseFromServer).toString
 
     // The message to send to server
     writeToFile(
@@ -119,7 +134,7 @@ class GrpcClient(host: String, port: Int) {
       endingMessage = s"=== End of full message ===",
       data = FullMessage(message),
       dirPath = dirPath,
-      fullFilePath = fullFilePath,
+      fullFilePath = scalaMessageInitalPath,
       appendMode = false
     )
 
@@ -130,15 +145,15 @@ class GrpcClient(host: String, port: Int) {
       endingMessage = s"=== End of full message ===",
       data = FullMessage(reponseAll),
       dirPath = dirPath,
-      fullFilePath = fullFilePath,
-      appendMode = true
+      fullFilePath = scalaResponseFromServerPath,
+      appendMode = false
     )
 
     // Send each set field individually
     writeToFile(
       data = SimpleString("=== Response for seding individual fields to server ==="),
       dirPath = dirPath,
-      fullFilePath = fullFilePath,
+      fullFilePath = scalaMessageIndiviualFieldPath,
       appendMode = true
     )
     setFields.foreach {
@@ -154,14 +169,14 @@ class GrpcClient(host: String, port: Int) {
         writeToFile(
           data = data,
           dirPath = dirPath,
-          fullFilePath = fullFilePath,
+          fullFilePath = scalaMessageIndiviualFieldPath,
           appendMode = true
         )
     }
     writeToFile(
       data = SimpleString("=== End of individual fields ==="),
       dirPath = dirPath,
-      fullFilePath = fullFilePath,
+      fullFilePath = scalaMessageIndiviualFieldPath,
       appendMode = true
     )
 
@@ -226,10 +241,10 @@ class GrpcClient(host: String, port: Int) {
   def setFieldsWithConfigValues(configValues: Vector[String], message: UniversalMessage): UniversalMessage = {
     var updatedMessage: UniversalMessage = message
     for (Seq(flag, value) <- configValues.grouped(2)) {
-      print(s"flag:$flag, value:$value\n")
+      // print(s"flag:$flag, value:$value\n")
 
       val (prefix, resultFlag) = extractPrefixAndresultFlag(flag)
-      print(s"prefix: $prefix, flag: $resultFlag\n")
+      // print(s"prefix: $prefix, flag: $resultFlag\n")
 
       prefix match {
         case 's' =>
@@ -245,7 +260,7 @@ class GrpcClient(host: String, port: Int) {
         case _ => println("Default")
       }
     }
-    println(s"message : $updatedMessage")
+    // println(s"message : $updatedMessage")
     updatedMessage
   }
 
@@ -295,7 +310,7 @@ class GrpcClient(host: String, port: Int) {
   }
 
   def helperSetAllMapFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
-    println(s"PlexMatching flag: '$flag' with value: '$value'")
+    // println(s"PlexMatching flag: '$flag' with value: '$value'")
 
     val keyVal = helperGetMapKeyAndValueFromString(value)
     val result = flag match {
@@ -312,19 +327,19 @@ class GrpcClient(host: String, port: Int) {
         val innerKey = parts.lift(1).flatMap(_.split("=").lift(1)).getOrElse("")
         val innerValue = parts.lift(2).flatMap(_.split("=").lift(1)).getOrElse("")
 
-        println(s"first=$outerKey, innerKey=$innerKey, innerValue=$innerValue")
+        // println(s"first=$outerKey, innerKey=$innerKey, innerValue=$innerValue")
 
         val nested = UniversalMessage.NestedMessage(name = Option(innerKey), value = innerValue.toIntOption)
         // Set with the outer key and nested
         message.update(_.mapIntNested := message.mapIntNested + (outerKey -> nested))
       case _ => message
     }
-    println(s"Result after update: $result")
+    // println(s"Result after update: $result")
     result
   }
 
   def helperSetNestedFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
-    println(s"Matching flag: '$flag' with value: '$value'")
+    // println(s"Matching flag: '$flag' with value: '$value'")
 
     val keyVal = helperGetMapKeyAndValueFromString(value)
     val result = flag match {
@@ -334,12 +349,12 @@ class GrpcClient(host: String, port: Int) {
         )
       case _ => message
     }
-    println(s"Result after update: $result")
+    // println(s"Result after update: $result")
     result
   }
 
   def helperSetStatusFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
-    println(s"Matching flag: '$flag' with value: '$value'")
+    // println(s"Matching flag: '$flag' with value: '$value'")
 
     val statusEnumOption: Option[UniversalMessage.Status] =
       UniversalMessage.Status.fromName(value.toUpperCase)
@@ -350,7 +365,7 @@ class GrpcClient(host: String, port: Int) {
         println(s"Unknown enum value, skipping, not setting, $value")
         message // leave message unchanged
     }
-    println(s"Result after update: $result")
+    // println(s"Result after update: $result")
     result
   }
 

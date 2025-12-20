@@ -19,11 +19,9 @@ object ScalaClient extends App {
 
   Config.init(args)
   val allArgs: Vector[Vector[String]] = Config.getAllArgsInLine()
-  for ((args, line) <- allArgs.zipWithIndex) {
+  try for ((args, line) <- allArgs.zipWithIndex) {
     msgUpdated = client.setFieldsWithConfigValues(args, msgUpdated)
-    println(msgUpdated)
-  }
-
-  try client.sendAllMessages(msgUpdated)
-  finally client.shutdown()
+    client.sendAllMessages(msgUpdated)
+    println(f"Sent $line")
+  } finally client.shutdown()
 }
