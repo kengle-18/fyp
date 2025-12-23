@@ -202,10 +202,27 @@ bool GrpcClient::CopySingularField(
 }
 
 // SendAllMessages
-void GrpcClient::SendAllMessages(const UniversalMessage& message,
-    const std::filesystem::path &cppMessageIndiviualField,
-    const std::filesystem::path &cppResponseFromServer)
+void GrpcClient::SendAllMessages(const UniversalMessage& message)
 {
+    const char* env = std::getenv("OUTPUT_DIR_GENERATED");
+    const char* fileEnv1 = std::getenv("OUTPUT_FILE_CPP_MESSAGE_INITAL");
+    const char* fileEnv2 = std::getenv("OUTPUT_FILE_CPP_MESSAGE_INDIVIDUAL_FIELD");
+    const char* fileEnv3 = std::getenv("OUTPUT_FILE_CPP_RESPONSE_FROM_SERVER");
+
+    auto currentTimeStamp = currentTimestamp();
+    // std::cout << currentTimestamp() << std::endl;
+
+    std::filesystem::path outputFile1 = fileEnv1 ? std::filesystem::path(fileEnv1) : std::filesystem::path("default.txt");
+    std::filesystem::path outputFile2 = fileEnv2 ? std::filesystem::path(fileEnv2) : std::filesystem::path("default.txt");
+    std::filesystem::path outputFile3 = fileEnv3 ? std::filesystem::path(fileEnv3) : std::filesystem::path("default.txt");
+
+    std::filesystem::path cppMessageInital = std::filesystem::path(env ? env : ".") / (currentTimeStamp + "_" + outputFile1.filename().string());
+    std::filesystem::path cppMessageIndiviualField = std::filesystem::path(env ? env : ".") / (currentTimeStamp + "_" + outputFile2.filename().string());
+    std::filesystem::path cppResponseFromServer = std::filesystem::path(env ? env : ".") / (currentTimeStamp + "_" + outputFile3.filename().string());
+
+    //  Full inital message to send
+    FileUtils::writeToFile(cppMessageInital.string(), message.DebugString());
+
     FileUtils::writeToFile(cppMessageIndiviualField.string(), "");
     auto fields = GetSetFields(message);
     for (auto& [name, _] : fields) {
@@ -230,6 +247,30 @@ void GrpcClient::SendAllMessages(const UniversalMessage& message,
     //           << reply.DebugString() << std::endl;
     FileUtils::writeToFile(cppResponseFromServer.string(), reply.DebugString());
 
+}
+
+
+std::string GrpcClient::currentTimestamp()
+{
+    using namespace std::chrono;
+
+    auto now = system_clock::now();
+    auto time_t_now = system_clock::to_time_t(now);
+    auto ms = duration_cast<milliseconds>(
+        now.time_since_epoch()) % 1000;
+
+    std::tm tm_now;
+    #if defined(_WIN32)
+        localtime_s(&tm_now, &time_t_now);
+    #else
+        localtime_r(&time_t_now, &tm_now);
+    #endif
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm_now, "%Y%m%d_%H%M%S")
+        << "_" << std::setw(3) << std::setfill('0') << ms.count();
+
+    return oss.str();
 }
 
 // GetSetFields

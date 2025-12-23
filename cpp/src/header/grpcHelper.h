@@ -43,9 +43,7 @@ public:
                      const google::protobuf::Message& message,
                      const std::filesystem::path &filePath);
 
-    void SendAllMessages(const UniversalMessage& message,
-                         const std::filesystem::path &filePath,
-                         const std::filesystem::path &filePath2);
+    void SendAllMessages(const UniversalMessage& message);
 
     static bool CopyFieldValue(google::protobuf::Message& dst,
         const google::protobuf::Message& src,
@@ -87,6 +85,8 @@ public:
     ParsedString parseString(const std::string& input);
 
     std::vector<char> extractCharsFromFlag(std::string& input);
+
+    std::string currentTimestamp();
 
 private:
     std::unique_ptr<UniversalTester::Stub> stub_;

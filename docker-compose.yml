@@ -4,13 +4,15 @@ services:
     container_name: python-app
     command: checkConfig.py
     volumes:
-      - ./test:/app/src/test:ro
-      - ./python/src/test:/app/src/test
+      # Host directly to the truth source
+      - ./test:/app/src/test
+      #  This is not needed if proto sync works, mount host same dir to container same directory
+      # - ./python/src/test:/app/src/test
     environment:
       - CONFIG_DIR=/app/src/test
       - DEFAULT_CONFIG_FILE=config.txt
-    depends_on:
-      - proto-sync
+    # depends_on:
+    #   - proto-sync
     healthcheck:
       test: ["CMD", "python", "/app/src/checkConfig.py"]
       interval: 5s
@@ -66,6 +68,9 @@ services:
       
       echo 'Sync completed successfully';
       "
+    depends_on:
+      python-app:
+        condition: service_completed_successfully
   scala-app:
     build: ./scala
     container_name: scala-app
@@ -94,8 +99,6 @@ services:
       - OUTPUT_FILE_SCALA_MESSAGE_INITAL=scalaMessageInital.txt
       - OUTPUT_FILE_SCALA_MESSAGE_INDIVIDUAL_FIELD=scalaMessageIndiviualField.txt
       - OUTPUT_FILE_SCALA_RESPONSE_FROM_SERVER=scalaResponseFromServer.txt
-      - FILE_TIMOUT_MS=500
-      - FILE_POLL_INTERVAL_MS=100
     depends_on:
       - scala-server
     volumes:
@@ -108,9 +111,11 @@ services:
       - MAIN_CLASS=com.example.ScalaServer
       - SERVER_PORT=50051
     depends_on:
-      python-app:
-        condition: service_completed_successfully
+      # python-app:
+      #   condition: service_completed_successfully
       proto-sync:
+        condition: service_started
+      python-filemanager:
         condition: service_started
     ports:
       - "50051:50051"
@@ -162,9 +167,11 @@ services:
       - OUTPUT_DIR_GENERATED=/app/cpp/src
     command: ["/app/server"]  # Explicitly run server (matches default CMD)
     depends_on:
-      python-app:
-        condition: service_completed_successfully
+      # python-app:
+      #   condition: service_completed_successfully
       proto-sync:
+        condition: service_started
+      python-filemanager:
         condition: service_started
     ports:
       - "50052:50051"  # Map to different host port to avoid conflict with Scala

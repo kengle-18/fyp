@@ -56,9 +56,15 @@ line_count = 0
 # Read content
 try:
     with open(file_to_use, "r") as f:
-        for line_number, line in enumerate(f, start=1):
-            line = line.rstrip("\n")  # remove newline only
-            process(line)
+        lines = [line.rstrip("\n") for line in f if line.strip()]
+
+    # write back clean 
+    with open(file_to_use, "w") as f:
+        for line in lines:
+            f.write(line + "\n")
+
+    for line_number, line in enumerate(lines, start=1):
+        process(line)
 except ValueError as e:
     print(f"Healthcheck failed: {e}")
     sys.exit(1)

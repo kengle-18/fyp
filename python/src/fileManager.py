@@ -23,8 +23,13 @@ class FileProcessingHandler(FileSystemEventHandler):
                 source_path = os.path.join(analyzer_dir, f)
                 logging.info(f"[DEBUG] Source path: {source_path}")
 
+                parts = f.split('_', 3)
+                if len(parts) < 4:
+                    logging.info(f"Skipping file without valid timestamp: {f}")
+                    continue
+
                 # Split filename to get timestamp part
-                timestamp = f.split('_', 3)[0] + '_' + f.split('_', 3)[1] + '_' + f.split('_', 3)[2]  
+                timestamp = f"{parts[0]}_{parts[1]}_{parts[2]}"
                 #  logging.info(f"{timestamp}")
                 # Create folder for this timestamp if it doesn't exist
                 timestamp_folder = os.path.join(analyzer_dir, timestamp)
@@ -39,21 +44,23 @@ class FileProcessingHandler(FileSystemEventHandler):
             logging.info("Files organized by timestamp successfully!")
             
 
-    def on_any_event(self, event):
-        self.process_file()
+    def on_created(self, event):
+        if not event.is_directory:
+            self.process_file()
 
 
 observer = Observer()
-observer.schedule(FileProcessingHandler(), path=str(analyzer_dir), recursive=False)
+handler = FileProcessingHandler()
+observer.schedule(handler, path=str(analyzer_dir), recursive=False)
 observer.start()
 logging.info(f"Watching {analyzer_dir}...")
 
 # Check at startup in case the file already exists
-FileProcessingHandler().process_file()
+handler.process_file()
 
 try:
     while True:
-        pass  # keep running
+        time.sleep(1)
 except KeyboardInterrupt:
     observer.stop()
 observer.join()

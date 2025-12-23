@@ -257,7 +257,7 @@ class GrpcClient(host: String, port: Int) {
           updatedMessage = helperSetNestedFields(message = updatedMessage, flag = resultFlag, value = value)
         case 'x' =>
           updatedMessage = helperSetStatusFields(message = updatedMessage, flag = resultFlag, value = value)
-        case _ => println("Default")
+        case _ => println("Unknown Flag")
       }
     }
     // println(s"message : $updatedMessage")
