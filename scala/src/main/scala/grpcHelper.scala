@@ -1,6 +1,13 @@
 package com.example.grpcHelper
 
 import io.grpc.{ManagedChannel, ManagedChannelBuilder, Server, ServerBuilder}
+import io.grpc.Metadata
+import io.grpc.stub.MetadataUtils
+
+import io.grpc.ServerInterceptors
+import com.example.CaptureAllHeadersInterceptor
+import com.example.TimestampContextKey
+
 import scala.concurrent.{ExecutionContext, Future}
 import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
@@ -18,11 +25,33 @@ case class FullMessage(message: UniversalMessage) extends Loggable
 case class SingleField(fieldName: String, value: Option[Any]) extends Loggable
 case class SimpleString(message: String) extends Loggable
 
-// 1️⃣ Server Implementation
-class UniversalTesterImpl extends UniversalTesterGrpc.UniversalTester {
+trait Logger {
+  protected val logger: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(this.getClass)
+}
 
-  override def sendUniversal(request: UniversalMessage): Future[UniversalMessage] =
+// 1️⃣ Server Implementation
+class UniversalTesterImpl extends UniversalTesterGrpc.UniversalTester with Logger {
+
+  override def sendUniversal(request: UniversalMessage): Future[UniversalMessage] = {
+    val timestamp = Option(TimestampContextKey.key.get()).getOrElse("N/A")
+    // println(s"Timestamp from header: $timestamp")
+    // println(s"Message is $request\n")
+
+    val dir: String = sys.env.getOrElse("CONFIG_APP_TEXT_DIR", "/app/scala/src/generated")
+    val dirPath: Path = Paths.get(dir)
+    val scalaRequestFromServer: String =
+      timestamp + "_" + sys.env.getOrElse("OUTPUT_FILE_SCALA_REQUEST_FROM_SERVER", "scalaRequestFromServer.txt")
+    val scalaRequestFromServerPath: String = dirPath.resolve(scalaRequestFromServer).toString
+    logger.info(s"request: $request, scalaRequestFromServer:$scalaRequestFromServer\n")
+    FileIO.writeToFile(
+      data = FullMessage(request),
+      dirPath = dirPath,
+      fullFilePath = scalaRequestFromServerPath,
+      appendMode = true
+    )
+
     Future.successful(request) // simply echo back for testing
+  }
 }
 
 // 2️⃣ gRPC Server
@@ -30,7 +59,12 @@ class GrpcServer(executionContext: ExecutionContext, port: Int) {
 
   val server: Server = ServerBuilder
     .forPort(port)
-    .addService(UniversalTesterGrpc.bindService(new UniversalTesterImpl, executionContext))
+    .addService(
+      ServerInterceptors.intercept(
+        UniversalTesterGrpc.bindService(new UniversalTesterImpl, executionContext),
+        new CaptureAllHeadersInterceptor()
+      )
+    )
     .build()
 
   def start(): Unit = {
@@ -43,7 +77,7 @@ class GrpcServer(executionContext: ExecutionContext, port: Int) {
 }
 
 // 3️⃣ gRPC Client
-class GrpcClient(host: String, port: Int) {
+class GrpcClient(host: String, port: Int) extends Logger {
 
   val channel: ManagedChannel = ManagedChannelBuilder
     .forAddress(host, port)
@@ -55,7 +89,24 @@ class GrpcClient(host: String, port: Int) {
 
   def shutdown(): Unit = channel.shutdown()
 
-  def sendMessage(fieldName: String, value: Any): (String, Option[Any]) = {
+  // Add timestamp for header
+  private val timeStampKey = Metadata.Key.of("timestamp", Metadata.ASCII_STRING_MARSHALLER)
+
+  private def withTimeStamp(
+      stub: UniversalTesterGrpc.UniversalTesterBlockingStub,
+      timeStamp: String
+  ): UniversalTesterGrpc.UniversalTesterBlockingStub = {
+
+    val headers = new Metadata()
+    headers.put(timeStampKey, timeStamp)
+
+    MetadataUtils.attachHeaders(stub, headers)
+  }
+
+  def sendUniversalWithTimeStamp(msg: UniversalMessage, timeStamp: String): UniversalMessage =
+    withTimeStamp(blockingStub, timeStamp).sendUniversal(msg)
+
+  def sendMessage(fieldName: String, value: Any, timeStamp: String): (String, Option[Any]) = {
     val msgToSend = fieldName match {
       // Scalar fields
       case "singleInt"    => UniversalMessage(singleInt = Some(value.asInstanceOf[Int]))
@@ -92,7 +143,8 @@ class GrpcClient(host: String, port: Int) {
 
       case _ => throw new IllegalArgumentException(s"Unknown field: $fieldName")
     }
-    val response: UniversalMessage = blockingStub.sendUniversal(msgToSend)
+    // val response: UniversalMessage = blockingStub.sendUniversal(msgToSend)
+    val response: UniversalMessage = sendUniversalWithTimeStamp(msgToSend, timeStamp)
 
     val responseField = response.productIterator
       .zip(response.productElementNames)
@@ -110,18 +162,19 @@ class GrpcClient(host: String, port: Int) {
   def sendAllMessages(message: UniversalMessage): Unit = {
     val setFields = getSetFields(message)
 
-    val timestamp: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS")) + "_"
+    val timestamp: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))
 
     val dir: String = sys.env.getOrElse("CONFIG_APP_TEXT_DIR", "/app/scala/src/generated")
     val dirPath: Path = Paths.get(dir)
 
     // val filePath: String = sys.env.getOrElse("CONFIG_APP_TEXT_FILE", "scalaClient.txt")
     val scalaMessageInital: String =
-      timestamp + sys.env.getOrElse("OUTPUT_FILE_SCALA_MESSAGE_INITAL", "scalaMessageInital.txt")
+      timestamp + "_" + sys.env.getOrElse("OUTPUT_FILE_SCALA_MESSAGE_INITAL", "scalaMessageInital.txt")
     val scalaMessageIndiviualField: String =
-      timestamp + sys.env.getOrElse("OUTPUT_FILE_SCALA_MESSAGE_INDIVIDUAL_FIELD", "scalaMessageIndiviualField.txt")
+      timestamp + "_" + sys.env
+        .getOrElse("OUTPUT_FILE_SCALA_MESSAGE_INDIVIDUAL_FIELD", "scalaMessageIndiviualField.txt")
     val scalaResponseFromServer: String =
-      timestamp + sys.env.getOrElse("OUTPUT_FILE_SCALA_RESPONSE_FROM_SERVER", "scalaResponseFromServer.txt")
+      timestamp + "_" + sys.env.getOrElse("OUTPUT_FILE_SCALA_RESPONSE_FROM_SERVER", "scalaResponseFromServer.txt")
 
     // val fullFilePath: String = dirPath.resolve(filePath).toString
     val scalaMessageInitalPath: String = dirPath.resolve(scalaMessageInital).toString
@@ -129,7 +182,7 @@ class GrpcClient(host: String, port: Int) {
     val scalaResponseFromServerPath: String = dirPath.resolve(scalaResponseFromServer).toString
 
     // The message to send to server
-    writeToFile(
+    FileIO.writeToFile(
       headerMessage = s"=== Sending full message to server ===",
       endingMessage = s"=== End of full message ===",
       data = FullMessage(message),
@@ -139,8 +192,9 @@ class GrpcClient(host: String, port: Int) {
     )
 
     // Send all set fields in the message
-    val reponseAll: UniversalMessage = blockingStub.sendUniversal(message)
-    writeToFile(
+    // val reponseAll: UniversalMessage = blockingStub.sendUniversal(message)
+    val reponseAll: UniversalMessage = sendUniversalWithTimeStamp(message, timestamp)
+    FileIO.writeToFile(
       headerMessage = s"=== Response from server ===",
       endingMessage = s"=== End of full message ===",
       data = FullMessage(reponseAll),
@@ -150,30 +204,32 @@ class GrpcClient(host: String, port: Int) {
     )
 
     // Send each set field individually
-    writeToFile(
+    FileIO.writeToFile(
       data = SimpleString("=== Response for seding individual fields to server ==="),
       dirPath = dirPath,
       fullFilePath = scalaMessageIndiviualFieldPath,
-      appendMode = true
+      appendMode = true,
+      flagToNotNewLineAtEnding = true
     )
     setFields.foreach {
       case (fieldName, value) =>
-        // println(s"Sending field $fieldName with value $value")
-        val responseIndividualFields: (String, Option[Any]) = sendMessage(fieldName, value)
+        logger.info(s"Sending field $fieldName with value $value")
+        val responseIndividualFields: (String, Option[Any]) = sendMessage(fieldName, value, timestamp)
 
         /** Same as
         val (fieldName, valueOpt) = responseIndividualFields
         val data = SingleField(fieldName, valueOpt)*/
 
         val data = (SingleField.apply _).tupled(responseIndividualFields)
-        writeToFile(
+        FileIO.writeToFile(
           data = data,
           dirPath = dirPath,
           fullFilePath = scalaMessageIndiviualFieldPath,
-          appendMode = true
+          appendMode = true,
+          flagToNotNewLineAtEnding = true
         )
     }
-    writeToFile(
+    FileIO.writeToFile(
       data = SimpleString("=== End of individual fields ==="),
       dirPath = dirPath,
       fullFilePath = scalaMessageIndiviualFieldPath,
@@ -193,50 +249,6 @@ class GrpcClient(host: String, port: Int) {
         case _                                      => None // Not set
       }
       .toSeq
-
-  def writeToFile(
-      data: Loggable,
-      dirPath: Path,
-      fullFilePath: String,
-      appendMode: Boolean,
-      headerMessage: String = "",
-      endingMessage: String = ""
-  ): Unit = {
-    if (!Files.exists(dirPath))
-      Files.createDirectories(dirPath)
-    val writer = new BufferedWriter(new FileWriter(fullFilePath, appendMode))
-    try {
-      if (headerMessage.nonEmpty)
-        writer.write(headerMessage + "\n")
-
-      data match {
-        case FullMessage(msg) =>
-          writer.write("Message fields:\n")
-          msg.productIterator.zip(msg.productElementNames).foreach {
-            case (Some(v), name)        => writer.write(s"$name: $v\n")
-            case (seq: Seq[_], name)    => writer.write(s"$name: [${seq.mkString(", ")}]\n")
-            case (map: Map[_, _], name) => writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
-            case (None, name)           => writer.write(s"$name: <not set>\n")
-            case (_, name)              => writer.write(s"$name: \n")
-          }
-
-        case SingleField(name, valueOpt) =>
-          valueOpt match {
-            case Some(v: Seq[_])    => writer.write(s"$name: [${v.mkString(", ")}]\n")
-            case Some(v: Map[_, _]) => writer.write(s"$name: ${v.mkString("{", ", ", "}")}\n")
-            case Some(v)            => writer.write(s"$name: $v\n")
-            case None               => writer.write(s"$name: <not set>\n")
-          }
-
-        case SimpleString(msg) =>
-          writer.write(msg + "\n")
-      }
-    } finally {
-      if (endingMessage.nonEmpty)
-        writer.write(endingMessage + "\n\n")
-      writer.close()
-    }
-  }
 
   def setFieldsWithConfigValues(configValues: Vector[String], message: UniversalMessage): UniversalMessage = {
     var updatedMessage: UniversalMessage = message
@@ -391,6 +403,59 @@ class GrpcClient(host: String, port: Int) {
     (key, v)
   }
 
+}
+
+object FileIO {
+
+  def writeToFile(
+      data: Loggable,
+      dirPath: Path,
+      fullFilePath: String,
+      appendMode: Boolean,
+      headerMessage: String = "",
+      endingMessage: String = "",
+      flagToNotNewLineAtEnding: Boolean = false
+  ): Unit = {
+    if (!Files.exists(dirPath))
+      Files.createDirectories(dirPath)
+    val writer = new BufferedWriter(new FileWriter(fullFilePath, appendMode))
+    try {
+      if (headerMessage.nonEmpty)
+        writer.write(headerMessage + "\n")
+
+      data match {
+        case FullMessage(msg) =>
+          writer.write("Message fields:\n")
+          msg.productIterator.zip(msg.productElementNames).foreach {
+            case (Some(v), name)        => writer.write(s"$name: $v\n")
+            case (seq: Seq[_], name)    => writer.write(s"$name: [${seq.mkString(", ")}]\n")
+            case (map: Map[_, _], name) => writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
+            case (None, name)           => writer.write(s"$name: <not set>\n")
+            case (_, name)              => writer.write(s"$name: \n")
+          }
+
+        case SingleField(name, valueOpt) =>
+          valueOpt match {
+            case Some(v: Seq[_])    => writer.write(s"$name: [${v.mkString(", ")}]\n")
+            case Some(v: Map[_, _]) => writer.write(s"$name: ${v.mkString("{", ", ", "}")}\n")
+            case Some(v)            => writer.write(s"$name: $v\n")
+            case None               => writer.write(s"$name: <not set>\n")
+          }
+
+        case SimpleString(msg) =>
+          writer.write(msg + "\n")
+      }
+    } finally
+    // if ending message is not empty, enter message + \n
+    // else if empty, \n
+    // else if
+    if (!flagToNotNewLineAtEnding && endingMessage.nonEmpty)
+      writer.write(endingMessage + "\n")
+    else if (!flagToNotNewLineAtEnding && endingMessage.isEmpty)
+      writer.write("\n")
+    else if (flagToNotNewLineAtEnding) {}
+    writer.close()
+  }
 }
 
 object RuntimeOptionalUpdater {

@@ -102,7 +102,9 @@ services:
     depends_on:
       - scala-server
     volumes:
+      # Config 
       - ./scala/src/main/test:/scala-dest-test:ro
+      # All output file
       - ./analyzer:/app/scala/src/generated
   scala-server:
     build: ./scala
@@ -110,6 +112,8 @@ services:
     environment:
       - MAIN_CLASS=com.example.ScalaServer
       - SERVER_PORT=50051
+      - CONFIG_APP_TEXT_DIR=/app/scala/src/generated
+      - OUTPUT_FILE_SCALA_REQUEST_FROM_SERVER=scalaRequestFromServer.txt
     depends_on:
       # python-app:
       #   condition: service_completed_successfully
@@ -119,6 +123,8 @@ services:
         condition: service_started
     ports:
       - "50051:50051"
+    volumes:
+      - ./analyzer:/app/scala/src/generated
 
 # Host port must be different from scala-server to avoid conflicts, e.g., 50052 but the 
 # container port remains 50051 as 50051 in container A is independent of 50051 in container B

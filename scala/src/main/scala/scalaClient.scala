@@ -15,13 +15,14 @@ object ScalaClient extends App {
 
   val client = new GrpcClient(host, port)
 
-  var msgUpdated: UniversalMessage = UniversalMessage()
+  // var msgUpdated: UniversalMessage = UniversalMessage()
 
   Config.init(args)
   val allArgs: Vector[Vector[String]] = Config.getAllArgsInLine()
   try for ((args, line) <- allArgs.zipWithIndex) {
-    msgUpdated = client.setFieldsWithConfigValues(args, msgUpdated)
-    client.sendAllMessages(msgUpdated)
+    val messageEmpty: UniversalMessage = UniversalMessage()
+    val updatedMsg = client.setFieldsWithConfigValues(args, messageEmpty)
+    client.sendAllMessages(updatedMsg)
     println(f"Sent $line")
   } finally client.shutdown()
 }
