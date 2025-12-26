@@ -6,7 +6,7 @@ import io.grpc.stub.MetadataUtils
 
 import io.grpc.ServerInterceptors
 import com.example.CaptureAllHeadersInterceptor
-import com.example.TimestampContextKey
+import com.example.{AllHeadersContextKey, TimestampContextKey}
 
 import scala.concurrent.{ExecutionContext, Future}
 import java.util.concurrent.Executors
@@ -33,6 +33,7 @@ trait Logger {
 class UniversalTesterImpl extends UniversalTesterGrpc.UniversalTester with Logger {
 
   override def sendUniversal(request: UniversalMessage): Future[UniversalMessage] = {
+    logger.info("=== ALL INCOMING HEADERS in server (Non-intercept)===")
     val timestamp = Option(TimestampContextKey.key.get()).getOrElse("N/A")
     // println(s"Timestamp from header: $timestamp")
     // println(s"Message is $request\n")
@@ -42,6 +43,21 @@ class UniversalTesterImpl extends UniversalTesterGrpc.UniversalTester with Logge
     val scalaRequestFromServer: String =
       timestamp + "_" + sys.env.getOrElse("OUTPUT_FILE_SCALA_REQUEST_FROM_SERVER", "scalaRequestFromServer.txt")
     val scalaRequestFromServerPath: String = dirPath.resolve(scalaRequestFromServer).toString
+
+    val scalaHeaderAtHeader: String =
+      timestamp + "_" + sys.env.getOrElse("OUTPUT_FILE_SCALA_HEADER_AT_SERVER", "scalaGrpcHeader.txt")
+    val scalaHeaderAtHeaderPath: String = dirPath.resolve(scalaHeaderAtHeader).toString
+
+    // ignore the custom header of timestamp
+    val allHeaders = Option(AllHeadersContextKey.key.get()).getOrElse(Map.empty[String, String])
+    val allHeadersExceptTimeStamp: Map[String, String] =
+      allHeaders.filterNot(_._1 == "timestamp")
+
+    allHeadersExceptTimeStamp.foreach {
+      case (key, value) =>
+        logger.info(s"$key -> $value")
+    }
+
     logger.info(s"request: $request, scalaRequestFromServer:$scalaRequestFromServer\n")
     FileIO.writeToFile(
       data = FullMessage(request),
@@ -50,12 +66,19 @@ class UniversalTesterImpl extends UniversalTesterGrpc.UniversalTester with Logge
       appendMode = true
     )
 
+    FileIO.writeToFile(
+      data = SingleField("header", Some(allHeadersExceptTimeStamp)),
+      dirPath = dirPath,
+      fullFilePath = scalaHeaderAtHeaderPath,
+      appendMode = true
+    )
+
     Future.successful(request) // simply echo back for testing
   }
 }
 
 // 2️⃣ gRPC Server
-class GrpcServer(executionContext: ExecutionContext, port: Int) {
+class GrpcServer(executionContext: ExecutionContext, port: Int) extends Logger {
 
   val server: Server = ServerBuilder
     .forPort(port)
@@ -69,7 +92,7 @@ class GrpcServer(executionContext: ExecutionContext, port: Int) {
 
   def start(): Unit = {
     server.start()
-    println(s"Server started, listening on ${server.getPort}")
+    logger.info(s"Server started, listening on ${server.getPort}")
   }
 
   def stop(): Unit = server.shutdown()
@@ -103,9 +126,11 @@ class GrpcClient(host: String, port: Int) extends Logger {
     MetadataUtils.attachHeaders(stub, headers)
   }
 
+  // send all message with header timestamp
   def sendUniversalWithTimeStamp(msg: UniversalMessage, timeStamp: String): UniversalMessage =
     withTimeStamp(blockingStub, timeStamp).sendUniversal(msg)
 
+  // send indiviudal field with header timestamp
   def sendMessage(fieldName: String, value: Any, timeStamp: String): (String, Option[Any]) = {
     val msgToSend = fieldName match {
       // Scalar fields
@@ -213,7 +238,7 @@ class GrpcClient(host: String, port: Int) extends Logger {
     )
     setFields.foreach {
       case (fieldName, value) =>
-        logger.info(s"Sending field $fieldName with value $value")
+        // logger.info(s"Sending field $fieldName with value $value")
         val responseIndividualFields: (String, Option[Any]) = sendMessage(fieldName, value, timestamp)
 
         /** Same as
@@ -236,7 +261,7 @@ class GrpcClient(host: String, port: Int) extends Logger {
       appendMode = true
     )
 
-    println("Sending completed.")
+    // logger.info("Sending completed.")
   }
 
   def getSetFields(message: UniversalMessage): Seq[(String, Any)] =
@@ -269,7 +294,7 @@ class GrpcClient(host: String, port: Int) extends Logger {
           updatedMessage = helperSetNestedFields(message = updatedMessage, flag = resultFlag, value = value)
         case 'x' =>
           updatedMessage = helperSetStatusFields(message = updatedMessage, flag = resultFlag, value = value)
-        case _ => println("Unknown Flag")
+        case _ => logger.info("Unknown Flag")
       }
     }
     // println(s"message : $updatedMessage")
@@ -312,7 +337,7 @@ class GrpcClient(host: String, port: Int) extends Logger {
           case Some(statusEnum) =>
             message.update(_.repeatedStatus :+= statusEnum) // set the enum
           case None =>
-            println(s"Unknown enum value, skipping, not setting, $value")
+            logger.info(s"Unknown enum value, skipping, not setting, $value")
             message // leave message unchanged
         }
       case _ => message

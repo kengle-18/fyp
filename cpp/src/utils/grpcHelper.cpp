@@ -1,5 +1,6 @@
 #include "../header/grpcHelper.h"
 #include "../header/io.h"
+#include "../header/captureAllHeadersInterceptor.h"
 #include <algorithm>
 
 // ===================================
@@ -24,23 +25,58 @@ grpc::Status UniversalTesterImpl::SendUniversal(grpc::ServerContext* context, co
 
     auto* replyRefl = reply->GetReflection();
 
-    for (int i = 0; i < desc->field_count(); ++i) {
-        const auto* field = desc->field(i);
+    // header 
+    const char* env = std::getenv("OUTPUT_DIR_GENERATED");
+    const char* fileEnv1 = std::getenv("OUTPUT_FILE_CPPHEADER_AT_SERVER");
+    std::filesystem::path outputFile1 = fileEnv1 ? std::filesystem::path(fileEnv1) : std::filesystem::path("default.txt");
+    // std::filesystem::path cppHeaderAtServer = std::filesystem::path(env ? env : ".") / (currentTimeStamp + "_" + outputFile1.filename().string());
 
-        std::cout << "[SERVER] Inspecting field: " << field->name()
-                    << ", type: " << field->cpp_type_name()
-                    << ", repeated: " << field->is_repeated() << "\n";
+    std::cout << "=== ALL INCOMING HEADERS in server ===" << std::endl;
+    const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = 
+            context->client_metadata();
         
-        bool shouldCopy = field->is_repeated() || refl->HasField(*request, field);
-        if (!shouldCopy) continue;
-
-        if (!GrpcClient::CopyFieldValue(*reply, *request, field)) {
-                std::cerr << "Unhandled field type: " << field->name() << std::endl;
-                // Return gRPC UNIMPLEMENTED status
-                return grpc::Status(grpc::StatusCode::UNIMPLEMENTED,
-                                    "Unhandled field type: " + field->name());
+    std::string timestamp = "N/A";
+    std::ostringstream headersToWrite;
+    
+    for (const auto& pair : metadata) {
+        std::string key(pair.first.data(), pair.first.size());
+        std::string value(pair.second.data(), pair.second.size());
+        
+        if (key == "timestamp") {
+            timestamp = value;
+            continue;
         }
+
+        // Save other headers
+        headersToWrite << key << " -> " << value << "\n";
     }
+    if(!timestamp.empty()){
+        std::filesystem::path cppHeaderAtServer = std::filesystem::path(env ? env : ".") / (timestamp + "_" + outputFile1.filename().string());
+        FileUtils::appendToFile(cppHeaderAtServer.string(), headersToWrite.str());
+    } else {
+        std::cout << "Error in printing headers from server" << std::endl;
+    }
+
+    std::cout << "Done in printing header and fields in server" << std::endl;
+
+    // for (int i = 0; i < desc->field_count(); ++i) {
+    //     const auto* field = desc->field(i);
+
+    //     std::cout << "[SERVER] Inspecting field: " << field->name()
+    //                 << ", type: " << field->cpp_type_name()
+    //                 << ", repeated: " << field->is_repeated() << "\n";
+                
+        // bool shouldCopy = field->is_repeated() || refl->HasField(*request, field);
+        // if (!shouldCopy) continue;
+
+        // if (!GrpcClient::CopyFieldValue(*reply, *request, field)) {
+        //         std::cerr << "Unhandled field type: " << field->name() << std::endl;
+        //         // Return gRPC UNIMPLEMENTED status
+        //         return grpc::Status(grpc::StatusCode::UNIMPLEMENTED,
+        //                             "Unhandled field type: " + field->name());
+        // }
+    // }
+    reply->CopyFrom(*request);
     return grpc::Status::OK;
 }
 
@@ -78,7 +114,8 @@ GrpcClient::GrpcClient(std::shared_ptr<grpc::Channel> channel)
 // SendMessage
 void GrpcClient::sendMessage(const std::string& fieldName,
                              const google::protobuf::Message& message,
-                             const std::filesystem::path &filePath)
+                             const std::filesystem::path &filePath,
+                             const std::string& timestamp)
 {
     UniversalMessage msgToSend;
     const auto* desc = UniversalMessage::descriptor();
@@ -95,13 +132,36 @@ void GrpcClient::sendMessage(const std::string& fieldName,
 
     UniversalMessage response;
     ClientContext context;
+
+    // try add timestamp in cpp
+    withTimestamp(context, timestamp);
+
     Status status = stub_->SendUniversal(&context, msgToSend, &response);
 
     if (status.ok()) {
+        // std::cout << "ok" << std::endl;
         FileUtils::appendToFile(filePath.string(),response.DebugString());
     } else {
         std::cerr << "RPC failed: " << status.error_message() << fieldName << "\n";
     }
+}
+
+UniversalMessage GrpcClient::sendUniversalWithTimestamp(const UniversalMessage& msg,
+                                                    const std::string& timestamp) {
+    UniversalMessage response;
+    grpc::ClientContext context;
+    withTimestamp(context, timestamp);
+    grpc::Status status = stub_->SendUniversal(&context, msg, &response);
+
+    if (!status.ok()) {
+        throw std::runtime_error("RPC failed: " + status.error_message());
+    }
+
+    return response;
+}
+
+void GrpcClient::withTimestamp(grpc::ClientContext& context, const std::string& timestamp) {
+    context.AddMetadata("timestamp", timestamp);
 }
 
 bool GrpcClient::CopyFieldValue(
@@ -223,29 +283,34 @@ void GrpcClient::SendAllMessages(const UniversalMessage& message)
     //  Full inital message to send
     FileUtils::writeToFile(cppMessageInital.string(), message.DebugString());
 
+    // Reponse full message from server
+    UniversalMessage reply = sendUniversalWithTimestamp(message, currentTimeStamp);
+    FileUtils::writeToFile(cppResponseFromServer.string(), reply.DebugString());
+
+
     FileUtils::writeToFile(cppMessageIndiviualField.string(), "");
     auto fields = GetSetFields(message);
     for (auto& [name, _] : fields) {
-        GrpcClient::sendMessage(name, message, cppMessageIndiviualField);
+        GrpcClient::sendMessage(name, message, cppMessageIndiviualField, currentTimeStamp);
     }
 
     // Write as a full message
     // std::cout << "Sending message full " << std::endl;
 
-    UniversalMessage reply;
-    grpc::ClientContext context;
+    // UniversalMessage reply;
+    // grpc::ClientContext context;
 
-    grpc::Status status = stub_->SendUniversal(&context, message, &reply);
-    if (!status.ok()) {
-        std::cerr << "Failed to send message: "
-                  << status.error_code() << " - "
-                  << status.error_message() << std::endl;
-        return;
-    }
+    // grpc::Status status = stub_->SendUniversal(&context, message, &reply);
+    // if (!status.ok()) {
+    //     std::cerr << "Failed to send message: "
+    //               << status.error_code() << " - "
+    //               << status.error_message() << std::endl;
+    //     return;
+    // }
 
     // std::cout << "Message sent successfully. Server replied with:\n"
     //           << reply.DebugString() << std::endl;
-    FileUtils::writeToFile(cppResponseFromServer.string(), reply.DebugString());
+    // FileUtils::writeToFile(cppResponseFromServer.string(), reply.DebugString());
 
 }
 

@@ -1,6 +1,7 @@
 package com.example
 
 import io.grpc._
+import scala.collection.mutable
 
 class CaptureAllHeadersInterceptor extends ServerInterceptor {
 
@@ -15,12 +16,20 @@ class CaptureAllHeadersInterceptor extends ServerInterceptor {
 
     println("=== ALL INCOMING HEADERS ===")
 
-    // Print every header (system + custom)
+    val allHeaders = mutable.Map[String, String]()
     headers.keys().forEach { key =>
-      val value =
-        headers.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER))
+      val value = headers.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER))
+      if (value != null)
+        allHeaders.put(key, value)
       println(s"$key -> $value")
     }
+
+    // Print every header (system + custom)
+    // headers.keys().forEach { key =>
+    //   val value =
+    //     headers.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER))
+    //   println(s"$key -> $value")
+    // }
 
     // Optionally, store timestamp in gRPC Context to access in service
     val ctx = Context
@@ -29,6 +38,7 @@ class CaptureAllHeadersInterceptor extends ServerInterceptor {
         TimestampContextKey.key,
         headers.get(timeStampKey)
       )
+      .withValue(AllHeadersContextKey.key, allHeaders.toMap)
 
     Contexts.interceptCall(ctx, call, headers, next)
   }
@@ -37,4 +47,8 @@ class CaptureAllHeadersInterceptor extends ServerInterceptor {
 // Context key to access timestamp in service methods
 object TimestampContextKey {
   val key: Context.Key[String] = Context.key("timestamp")
+}
+
+object AllHeadersContextKey {
+  val key: Context.Key[Map[String, String]] = Context.key("all-headers")
 }

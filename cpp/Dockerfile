@@ -55,6 +55,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgrpc++-dev \
     libprotobuf-dev \
     protobuf-compiler \
+    tcpdump \
+    netcat \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

@@ -41,7 +41,8 @@ public:
 
     void sendMessage(const std::string& fieldName,
                      const google::protobuf::Message& message,
-                     const std::filesystem::path &filePath);
+                     const std::filesystem::path &filePath, 
+                     const std::string& timestamp);
 
     void SendAllMessages(const UniversalMessage& message);
 
@@ -91,5 +92,10 @@ public:
 private:
     std::unique_ptr<UniversalTester::Stub> stub_;
 
+    UniversalMessage sendUniversalWithTimestamp(const UniversalMessage& msg,
+                                            const std::string& timestamp);
+    
+    void withTimestamp(grpc::ClientContext& context, const std::string& timestamp);
+    
     static const std::unordered_map<std::string, UniversalMessage::Status> statusMap;
 };

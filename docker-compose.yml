@@ -100,12 +100,14 @@ services:
       - OUTPUT_FILE_SCALA_MESSAGE_INDIVIDUAL_FIELD=scalaMessageIndiviualField.txt
       - OUTPUT_FILE_SCALA_RESPONSE_FROM_SERVER=scalaResponseFromServer.txt
     depends_on:
-      - scala-server
+      scala-server:
+        condition: service_healthy
     volumes:
       # Config 
       - ./scala/src/main/test:/scala-dest-test:ro
       # All output file
       - ./analyzer:/app/scala/src/generated
+    restart: on-failure
   scala-server:
     build: ./scala
     container_name: scala-server
@@ -114,6 +116,7 @@ services:
       - SERVER_PORT=50051
       - CONFIG_APP_TEXT_DIR=/app/scala/src/generated
       - OUTPUT_FILE_SCALA_REQUEST_FROM_SERVER=scalaRequestFromServer.txt
+      - OUTPUT_FILE_SCALA_HEADER_AT_SERVER=scalaGrpcHeader.txt
     depends_on:
       # python-app:
       #   condition: service_completed_successfully
@@ -125,6 +128,33 @@ services:
       - "50051:50051"
     volumes:
       - ./analyzer:/app/scala/src/generated
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped  # Keep server running
+  
+  scala-tcpdump:
+    image: nicolaka/netshoot
+    container_name: scala-tcpdump
+    network_mode: "service:scala-server"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./analyzer/scala_traffic_server:/captures
+    # $$ escapes to $ in shell container 
+    command: >
+      sh -c '
+        mkdir -p /captures;
+        FILENAME=/captures/grpc_scalaserver_$$(date +%Y%m%d_%H%M%S).pcap
+        echo "Creating file: $${FILENAME}";
+        ls -la /captures;
+        tcpdump -i any port 50051 -w $${FILENAME}
+      '
+
 
 # Host port must be different from scala-server to avoid conflicts, e.g., 50052 but the 
 # container port remains 50051 as 50051 in container A is independent of 50051 in container B
@@ -157,11 +187,12 @@ services:
     command: ["/app/client"]  # Override default CMD to run client
     depends_on:
       cpp-server:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
       - ./cpp/src/generated:/app/src/generated
       - ./analyzer:/app/cpp/src
+    restart: on-failure  # Restart client if it fails
     
   cpp-server:
     build:
@@ -171,6 +202,7 @@ services:
     environment:
       - SERVER_PORT=50051
       - OUTPUT_DIR_GENERATED=/app/cpp/src
+      - OUTPUT_FILE_CPPHEADER_AT_SERVER=cppGrpcHeader.txt
     command: ["/app/server"]  # Explicitly run server (matches default CMD)
     depends_on:
       # python-app:
@@ -184,6 +216,32 @@ services:
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
       - ./analyzer:/app/cpp/src
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped  # Keep server running
+
+  cpp-tcpdump:
+    image: nicolaka/netshoot
+    container_name: cpp-tcpdump
+    network_mode: "service:cpp-server"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./analyzer/cpp_traffic_server:/captures
+    # $$ escapes to $ in shell container 
+    command: >
+      sh -c '
+        mkdir -p /captures;
+        FILENAME=/captures/grpc_cppserver_$$(date +%Y%m%d_%H%M%S).pcap
+        echo "Creating file: $${FILENAME}";
+        ls -la /captures;
+        tcpdump -i any port 50051 -w $${FILENAME}
+      '
 
   cpp-generate:
     build: 
