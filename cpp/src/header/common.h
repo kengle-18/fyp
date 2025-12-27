@@ -14,6 +14,9 @@
 #include <fstream>       // std::ofstream
 #include <filesystem>    // std::filesystem (C++17)
 #include <map>           // std::map
+#include <csignal>       // for system signal
+#include <iomanip>
+#include <sstream>
 
 // gRPC / Protobuf
 #include <grpcpp/grpcpp.h>   // Main gRPC API
@@ -40,3 +43,6 @@ using grpc::Status;
 using com::example::Greeter;
 using com::example::HelloRequest;
 using com::example::HelloReply;
+
+using com::example::UniversalMessage;
+using com::example::UniversalTester;

@@ -33,6 +33,7 @@ RUN mkdir -p src/generated && \
            --cpp_out=src/generated \
            --grpc_out=src/generated \
            --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` \
+           --experimental_allow_proto3_optional \
            src/protobuf/base.proto
 
 
@@ -54,6 +55,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgrpc++-dev \
     libprotobuf-dev \
     protobuf-compiler \
+    tcpdump \
+    netcat \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

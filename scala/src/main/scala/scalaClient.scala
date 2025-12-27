@@ -6,8 +6,8 @@ import com.example.base._ // adjust based on the generated folder
 import com.example.grpcHelper._
 
 // 2️⃣ Main Client Application
-object ScalaClient extends App {
-  private val logger = LoggerFactory.getLogger(getClass)
+object ScalaClient extends App with Logger {
+  // private val logger = LoggerFactory.getLogger(getClass)
 
   // Get host/port from env or fall back to defaults
   val host = sys.env.getOrElse("SERVER_HOST", "localhost")
@@ -15,15 +15,14 @@ object ScalaClient extends App {
 
   val client = new GrpcClient(host, port)
 
+  // var msgUpdated: UniversalMessage = UniversalMessage()
+
   Config.init(args)
-  val name = Config.getArg(0)
-  val option = Config.getArg(1)
-  logger.info(s"Name selected: $name")
-  logger.info(s"Option selected: $option")
-
-  val allArgs = Config.getAll(Seq("Default", "Default"))
-  logger.info(s"All args merged: ${allArgs.mkString(", ")}")
-
-  try client.greet(name)
-  finally client.shutdown()
+  val allArgs: Vector[Vector[String]] = Config.getAllArgsInLine()
+  try for ((args, line) <- allArgs.zipWithIndex) {
+    val messageEmpty: UniversalMessage = UniversalMessage()
+    val updatedMsg = client.setFieldsWithConfigValues(args, messageEmpty)
+    client.sendAllMessages(updatedMsg)
+    logger.info(f"Sent ${line + 1} of command")
+  } finally client.shutdown()
 }

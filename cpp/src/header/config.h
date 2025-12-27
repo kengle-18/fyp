@@ -17,8 +17,7 @@ private:
 
 public:
     Config(int argc, char** argv);
-    std::string getArg(int index, const std::string& fallback = "Default") const;
-    std::vector<std::string> getAll(const std::vector<std::string>& fallbacks = {}) const;
+    std::vector<std::vector<std::string>> getAllArgsInLine() const;
 };
 
 #endif // CONFIG_H

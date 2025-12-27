@@ -25,12 +25,13 @@ lazy val root = (project in file("."))
       // "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
       "io.grpc" % "grpc-netty-shaded" % grpcJavaVersion,
       "io.grpc" % "grpc-protobuf" % scalapb.compiler.Version.grpcJavaVersion,
-      "io.grpc" % "grpc-stub" % scalapb.compiler.Version.grpcJavaVersion
+      "io.grpc" % "grpc-stub" % scalapb.compiler.Version.grpcJavaVersion,
+      "com.chuusai" %% "shapeless" % "2.3.10"
     ),
     // Required to tell ScalaPB to generate the gRPC service code
     // Read proto files in src/main/protobuf/*.proto
     Compile / PB.targets := Seq(
-      scalapb.gen(grpc = true) -> (Compile / sourceManaged).value
+      scalapb.gen(grpc = true, lenses = true) -> (Compile / sourceManaged).value
     ),
     // This compiler plugin is needed for the ScalaPB code generation
     addCompilerPlugin(

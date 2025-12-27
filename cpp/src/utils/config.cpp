@@ -60,25 +60,28 @@ Config::Config(int argc, char** argv) {
     }
 }
 
-std::string Config::getArg(int index, const std::string& fallback) const {
-    if (index < static_cast<int>(args_.size()) && !args_[index].empty())
-        return args_[index];
+std::vector<std::vector<std::string>> Config::getAllArgsInLine() const {
+    std::vector<std::vector<std::string>> allLines;
+    for (const auto& [index, value] : fileConfig_) {
+        std::vector<std::string> tokens;
+        std::istringstream iss(value);
+        std::string token;
 
-    auto it = fileConfig_.find(index);
-    if (it != fileConfig_.end())
-        return it->second;
+        while (iss >> std::quoted(token)) {
+            tokens.push_back(token);
+        }
 
-    return fallback;
-}
-
-std::vector<std::string> Config::getAll(const std::vector<std::string>& fallbacks) const {
-    size_t maxLength = std::max({args_.size(), fileConfig_.size(), fallbacks.size()});
-    std::vector<std::string> result;
-
-    for (size_t i = 0; i < maxLength; ++i) {
-        std::string fb = (i < fallbacks.size()) ? fallbacks[i] : "Default";
-        result.push_back(getArg(static_cast<int>(i), fb));
+        allLines.push_back(std::move(tokens));
     }
 
-    return result;
+    // std::cout << "Command-line Arguments:\n";
+    // for (size_t line = 0; line < allLines.size(); ++line) {
+    //     std::cout << "Line " << line << ": ";
+    //     for (const auto& tok : allLines[line]) {
+    //         std::cout << "[" << tok << "] ";
+    //     }
+    //     std::cout << "\n";
+    // }
+
+    return allLines;
 }

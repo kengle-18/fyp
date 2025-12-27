@@ -11,27 +11,20 @@ int main(int argc, char** argv) {
     std::string port = port_env ? port_env : "50051";
     std::string server_address = host + ":" + port;
 
-    GreeterClient client(grpc::CreateChannel(
+    GrpcClient client(grpc::CreateChannel(
         server_address, grpc::InsecureChannelCredentials()));
 
     Config config(argc, argv);
-    std::string name = config.getArg(0, "DefaultName");
-    std::string option = config.getArg(1, "DefaultOption");
 
-    std::cout << "📘 Name selected: " << name << std::endl;
-    std::cout << "📘 Option selected: " << option << std::endl;
+    auto allArgs = config.getAllArgsInLine();
+    UniversalMessage msg;
 
-    auto allArgs = config.getAll({"Default", "Default"});
-    std::ostringstream merged;
-    for (size_t i = 0; i < allArgs.size(); ++i) {
-        merged << allArgs[i];
-        if (i + 1 < allArgs.size()) merged << ", ";
+    // std::cout << "Command-line Arguments:\n";
+    for (size_t line = 0; line < allArgs.size(); ++line) {
+        // std::cout << "Line " << line << ": " << std::endl;
+        client.setFieldsWithConfigValues(allArgs[line], msg);
+        client.SendAllMessages(msg);
     }
-    std::cout << "📘 All args merged: " << merged.str() << std::endl;
 
-    std::string user("DockerUserTesting");
-    std::string reply = client.SayHello(user);
-
-    std::cout << "👋 Client received: " << reply << std::endl;
     return 0;
 }

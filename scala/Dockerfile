@@ -40,7 +40,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Install dumb-init for proper PID handling
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init netcat-openbsd tcpdump
 
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
@@ -51,7 +51,7 @@ COPY --from=builder /app/target/scala-2.13/scala-assembly-0.1.0-SNAPSHOT.jar app
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
-USER appuser
+# USER appuser
 
 # Optimized runtime
 
