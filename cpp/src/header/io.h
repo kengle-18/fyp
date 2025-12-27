@@ -9,7 +9,8 @@ namespace FileUtils {
         if (!file.is_open()) {
             return false;                  // Failed to open
         }
-        file << content;                    // Write content
+        file << content << '\n';                    // Write content
+
         return true;                        // Success
     }
 
@@ -18,7 +19,7 @@ namespace FileUtils {
         if (!file.is_open()) {
             return false;                  // Failed to open
         }
-        file << content;                    // Append content
+        file << content << '\n';                    // Append content
         return true;                        // Success 
     }
 

@@ -30,6 +30,9 @@ grpc::Status UniversalTesterImpl::SendUniversal(grpc::ServerContext* context, co
     const char* fileEnv1 = std::getenv("OUTPUT_FILE_CPPHEADER_AT_SERVER");
     std::filesystem::path outputFile1 = fileEnv1 ? std::filesystem::path(fileEnv1) : std::filesystem::path("default.txt");
     // std::filesystem::path cppHeaderAtServer = std::filesystem::path(env ? env : ".") / (currentTimeStamp + "_" + outputFile1.filename().string());
+    
+    const char* fileEnv2 = std::getenv("OUTPUT_FILE_CPP_REQUEST_FROM_SERVER");
+    std::filesystem::path outputFile2 = fileEnv2 ? std::filesystem::path(fileEnv2) : std::filesystem::path("default.txt");
 
     std::cout << "=== ALL INCOMING HEADERS in server ===" << std::endl;
     const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = 
@@ -56,6 +59,9 @@ grpc::Status UniversalTesterImpl::SendUniversal(grpc::ServerContext* context, co
     } else {
         std::cout << "Error in printing headers from server" << std::endl;
     }
+
+    std::filesystem::path cppRequestFromServer = std::filesystem::path(env ? env : ".") / (timestamp + "_" + outputFile2.filename().string());
+    FileUtils::appendToFile(cppRequestFromServer.string(), request->DebugString());
 
     std::cout << "Done in printing header and fields in server" << std::endl;
 

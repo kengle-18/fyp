@@ -202,6 +202,7 @@ services:
     environment:
       - SERVER_PORT=50051
       - OUTPUT_DIR_GENERATED=/app/cpp/src
+      - OUTPUT_FILE_CPP_REQUEST_FROM_SERVER=cppRequestFromServer.txt
       - OUTPUT_FILE_CPPHEADER_AT_SERVER=cppGrpcHeader.txt
     command: ["/app/server"]  # Explicitly run server (matches default CMD)
     depends_on:
@@ -282,38 +283,52 @@ services:
       - scala-generate
     command: sh -c 'echo "✅ C++ and Scala generation completed"'
 
-
+# cpp server and scala-client, this is scala-client that deps on cpp-server
   cpp-server-scala-client:
     build: ./scala
     container_name: cpp-server-scala-client
     environment:
       - MAIN_CLASS=com.example.ScalaClient
-      - SERVER_HOST=scala-server
+      - SERVER_HOST=cpp-server
       - SERVER_PORT=50051
       - CONFIG_DIR=/scala-dest-test
       - CONFIG_FILE=config.txt
+      - CONFIG_APP_TEXT_DIR=/app/scala/src/generated
+      - OUTPUT_FILE_SCALA_MESSAGE_INITAL=scalaMessageInital.txt
+      - OUTPUT_FILE_SCALA_MESSAGE_INDIVIDUAL_FIELD=scalaMessageIndiviualField.txt
+      - OUTPUT_FILE_SCALA_RESPONSE_FROM_SERVER=scalaResponseFromServer.txt
     depends_on:
-      - cpp-server
+      cpp-server:
+        condition: service_healthy
     volumes:
       - ./scala/src/main/test:/scala-dest-test:ro
+      - ./analyzer:/app/scala/src/generated
+    restart: on-failure
 
+  # scala server and cpp-client, this is cpp-client that deps on scala-server
   scala-server-cpp-client:
     build:
       context: ./cpp
       target: runtime
     container_name: scala-server-cpp-client
     environment:
-      - SERVER_HOST=cpp-server
+      - SERVER_HOST=scala-server
       - SERVER_PORT=50051
       - CONFIG_DIR=/cpp-dest-test
       - CONFIG_FILE=config.txt
+      - OUTPUT_DIR_GENERATED=/app/cpp/src
+      - OUTPUT_FILE_CPP_MESSAGE_INITAL=cppMessageInital.txt
+      - OUTPUT_FILE_CPP_MESSAGE_INDIVIDUAL_FIELD=cppMessageIndiviualField.txt
+      - OUTPUT_FILE_CPP_RESPONSE_FROM_SERVER=cppResponseFromServer.txt
     command: ["/app/client"]  # Override default CMD to run client
     depends_on:
-      - scala-server
-      - proto-sync
+      scala-server:
+        condition: service_healthy
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
       - ./cpp/src/generated:/app/src/generated
+      - ./analyzer:/app/cpp/src
+    restart: on-failure  # Restart client if it fails
   
   
     
