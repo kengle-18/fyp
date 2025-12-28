@@ -9,7 +9,10 @@ namespace FileUtils {
         if (!file.is_open()) {
             return false;                  // Failed to open
         }
-        file << content << '\n';                    // Write content
+
+        if (!content.empty()){
+            file << content << '\n';                    // Write content
+        }
 
         return true;                        // Success
     }

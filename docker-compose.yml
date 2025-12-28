@@ -190,7 +190,7 @@ services:
         condition: service_healthy
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
-      - ./cpp/src/generated:/app/src/generated
+      # - ./cpp/src/generated:/app/src/generated
       - ./analyzer:/app/cpp/src
     restart: on-failure  # Restart client if it fails
     
@@ -247,21 +247,17 @@ services:
   cpp-generate:
     build: 
       context: ./cpp
-      target: builder  # Use builder stage to access generated files
+      target: generate  # Use builder stage to access generated files
     container_name: cpp-generate
     depends_on:
       - proto-sync
     volumes:
       - ./cpp/src/generated:/tmp/generated:rw
-    command: |
-      sh -c "
-        mkdir -p /tmp/generated
-        cp -r /app/src/generated/* /tmp/generated/
-      "
+    command: sh -c "cp -r /app/src/generated/* /tmp/generated/ && echo '✅ Files copied'"
   scala-generate:
     build:
       context: ./scala
-      target: builder
+      target: generator
     container_name: scala-generate
     depends_on:
       - proto-sync
@@ -274,7 +270,10 @@ services:
         echo "✅ ALL Generated Scala files:" ;
         find /app/target/scala-2.13/src_managed/main -name "*.scala" -type f -exec basename {} \; | sort ;
         echo "" ;
+        /bin/sh
       '
+    
+  # Generate new protobuf api 
   cpp-scala-generate:
     image: "alpine:latest"
     container_name: cpp-scala-generate

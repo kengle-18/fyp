@@ -16,6 +16,25 @@ RUN sbt compile
 # Create directories for sbt/ivy/cache
 RUN mkdir -p /root/.ivy2 /root/.sbt /root/.cache
 
+# For generate new probuf
+FROM hseeberger/scala-sbt:17.0.2_1.6.2_2.13.8 AS generator
+WORKDIR /app
+
+# Copy build configuration
+COPY build.sbt .
+COPY project ./project
+
+# Copy cached dependencies from deps stage
+COPY --from=deps /root/.sbt /root/.sbt
+COPY --from=deps /root/.ivy2 /root/.ivy2
+COPY --from=deps /root/.cache /root/.cache
+
+# Create directories for protobuf files
+RUN mkdir -p src/main/scala src/main/protobuf
+
+# This stage is ready for proto generation at runtime
+CMD ["sbt", "Compile / PB.generate"]
+
 # ===== Stage 2: Build the fat JAR =====
 FROM hseeberger/scala-sbt:17.0.2_1.6.2_2.13.8 AS builder
 

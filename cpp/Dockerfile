@@ -44,6 +44,17 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 RUN --mount=type=cache,target=/root/.ccache \
     cmake --build build --config Release -j$(nproc)
 
+# For debug 
+FROM ubuntu:22.04 AS generate
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    protobuf-compiler-grpc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=builder /app/src/generated/ /app/src/generated
+
 # ===========================
 # 2. Runtime stage
 # ===========================
@@ -61,7 +72,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
-
 # Copy only final executable
 COPY --from=builder /app/build/hello_grpc /app/hello_grpc
 COPY --from=builder /app/build/server /app/server

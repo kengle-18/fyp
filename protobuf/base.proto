@@ -20,13 +20,13 @@ message User {
 }
 
 /*
-single_int --> --si
-big_int --> --sbi
-single_string --> --ss
-single_bool --> --sb
-single_double --> --sd
-single_float --> --sf
-single_bytes --> --sbts
+opt_single_int --> --si
+opt_big_int --> --sbi
+opt_single_string --> --ss
+opt_single_bool --> --sb
+opt_single_double --> --sd
+opt_single_float --> --sf
+opt_single_bytes --> --sbts
 
 repeated_int --> --ri
 repeated_string --> --rs

@@ -275,10 +275,11 @@ class GrpcClient(host: String, port: Int) extends Logger {
       }
       .toSeq
 
+  // Set all fields using config
   def setFieldsWithConfigValues(configValues: Vector[String], message: UniversalMessage): UniversalMessage = {
     var updatedMessage: UniversalMessage = message
     for (Seq(flag, value) <- configValues.grouped(2)) {
-      // print(s"flag:$flag, value:$value\n")
+      print(s"flag:$flag, value:$value\n")
 
       val (prefix, resultFlag) = extractPrefixAndresultFlag(flag)
       // print(s"prefix: $prefix, flag: $resultFlag\n")
