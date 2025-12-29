@@ -20,13 +20,13 @@ message User {
 }
 
 /*
-opt_single_int --> --si
-opt_big_int --> --sbi
-opt_single_string --> --ss
-opt_single_bool --> --sb
-opt_single_double --> --sd
-opt_single_float --> --sf
-opt_single_bytes --> --sbts
+opt_single_int --> --oi
+opt_big_int --> --obi
+opt_single_string --> --os
+opt_single_bool --> --ob
+opt_single_double --> --od
+opt_single_float --> --of
+opt_single_bytes --> --obts
 
 repeated_int --> --ri
 repeated_string --> --rs
@@ -46,17 +46,25 @@ repeated_nested with key as string and value as int --> --rnsi
 status --> --x
 repeated_status --> --rx
 
+default_single_int --> --si
+default_big_int --> --sbi
+default_single_string --> --ss
+default_single_bool --> --sb
+default_single_double --> --sd
+default_single_float --> --sf
+default_single_bytes --> --sbts
+
 */
 
 message UniversalMessage {
   // ---------- Scalar Fields (Optional) ----------
-  optional int32 single_int = 1;
-  optional int64 big_int = 2;
-  optional string single_string = 3;
-  optional bool single_bool = 4;
-  optional double single_double = 5;
-  optional float single_float = 6;
-  optional bytes single_bytes = 7;
+  optional int32 opt_single_int = 1;
+  optional int64 opt_big_int = 2;
+  optional string opt_single_string = 3;
+  optional bool opt_single_bool = 4;
+  optional double opt_single_double = 5;
+  optional float opt_single_float = 6;
+  optional bytes opt_single_bytes = 7;
   
   // ---------- Repeated Fields ----------
   // Note: repeated fields are ALWAYS optional (empty list vs not set)
@@ -95,6 +103,15 @@ message UniversalMessage {
   
   optional Status status = 20;
   repeated Status repeated_status = 21;
+
+  // For non-optional single field
+  int32 default_single_int = 22;
+  int64 default_big_int = 23;
+  string default_single_string = 24;
+  bool default_single_bool = 25;
+  double default_single_double = 26;
+  float default_single_float = 27;
+  bytes default_single_bytes = 28;
 }
 
 service UniversalTester {

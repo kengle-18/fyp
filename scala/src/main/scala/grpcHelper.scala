@@ -133,14 +133,25 @@ class GrpcClient(host: String, port: Int) extends Logger {
   // send indiviudal field with header timestamp
   def sendMessage(fieldName: String, value: Any, timeStamp: String): (String, Option[Any]) = {
     val msgToSend = fieldName match {
-      // Scalar fields
-      case "singleInt"    => UniversalMessage(singleInt = Some(value.asInstanceOf[Int]))
-      case "bigInt"       => UniversalMessage(bigInt = Some(value.asInstanceOf[Long]))
-      case "singleString" => UniversalMessage(singleString = Some(value.asInstanceOf[String]))
-      case "singleBool"   => UniversalMessage(singleBool = Some(value.asInstanceOf[Boolean]))
-      case "singleDouble" => UniversalMessage(singleDouble = Some(value.asInstanceOf[Double]))
-      case "singleFloat"  => UniversalMessage(singleFloat = Some(value.asInstanceOf[Float]))
-      case "singleBytes"  => UniversalMessage(singleBytes = Some(value.asInstanceOf[com.google.protobuf.ByteString]))
+      // Scalar optional fields
+      case "optSingleInt"    => UniversalMessage(optSingleInt = Some(value.asInstanceOf[Int]))
+      case "optBigInt"       => UniversalMessage(optBigInt = Some(value.asInstanceOf[Long]))
+      case "optSingleString" => UniversalMessage(optSingleString = Some(value.asInstanceOf[String]))
+      case "optSingleBool"   => UniversalMessage(optSingleBool = Some(value.asInstanceOf[Boolean]))
+      case "optSingleDouble" => UniversalMessage(optSingleDouble = Some(value.asInstanceOf[Double]))
+      case "optSingleFloat"  => UniversalMessage(optSingleFloat = Some(value.asInstanceOf[Float]))
+      case "optSingleBytes" =>
+        UniversalMessage(optSingleBytes = Some(value.asInstanceOf[com.google.protobuf.ByteString]))
+
+      // Scaler non-optional fields
+      case "defaultSingleInt"    => UniversalMessage(defaultSingleInt = value.asInstanceOf[Int])
+      case "defaultBigInt"       => UniversalMessage(defaultBigInt = value.asInstanceOf[Long])
+      case "defaultSingleString" => UniversalMessage(defaultSingleString = value.asInstanceOf[String])
+      case "defaultSingleBool"   => UniversalMessage(defaultSingleBool = value.asInstanceOf[Boolean])
+      case "defaultSingleDouble" => UniversalMessage(defaultSingleDouble = value.asInstanceOf[Double])
+      case "defaultSingleFloat"  => UniversalMessage(defaultSingleFloat = value.asInstanceOf[Float])
+      case "defaultSingleBytes" =>
+        UniversalMessage(defaultSingleBytes = value.asInstanceOf[com.google.protobuf.ByteString])
 
       // Repeated fields
       case "repeatedInt"    => UniversalMessage(repeatedInt = value.asInstanceOf[Seq[Int]])
@@ -175,10 +186,11 @@ class GrpcClient(host: String, port: Int) extends Logger {
       .zip(response.productElementNames)
       .find { case (_, name) => name == fieldName }
       .flatMap {
-        case (Some(v), _)                        => Some(v) // Optional field is set
-        case (seq: Seq[_], _) if seq.nonEmpty    => Some(seq) // Repeated field
-        case (map: Map[_, _], _) if map.nonEmpty => Some(map) // Map field
-        case _                                   => None // Not set
+        case (Some(v), _)                            => Some(v) // Optional field is set
+        case (seq: Seq[_], _) if seq.nonEmpty        => Some(seq) // Repeated field
+        case (map: Map[_, _], _) if map.nonEmpty     => Some(map) // Map field
+        case (v, name) if name.startsWith("default") => Some(v) // default for scaler
+        case _                                       => None // Not set
       }
     // println(s"Sent field $fieldName with value $value, got response: $responseField")
     (fieldName, responseField)
@@ -186,7 +198,7 @@ class GrpcClient(host: String, port: Int) extends Logger {
 
   def sendAllMessages(message: UniversalMessage): Unit = {
     val setFields = getSetFields(message)
-
+    // logger.info(s"done set fields")
     val timestamp: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))
 
     val dir: String = sys.env.getOrElse("CONFIG_APP_TEXT_DIR", "/app/scala/src/generated")
@@ -264,14 +276,16 @@ class GrpcClient(host: String, port: Int) extends Logger {
     // logger.info("Sending completed.")
   }
 
+  // This is to get the runtime field nam,e
   def getSetFields(message: UniversalMessage): Seq[(String, Any)] =
     message.productIterator
       .zip(message.productElementNames)
       .flatMap {
-        case (Some(v), name)                        => Some(name -> v) // Optional field is set
-        case (seq: Seq[_], name) if seq.nonEmpty    => Some(name -> seq) // Repeated field
-        case (map: Map[_, _], name) if map.nonEmpty => Some(name -> map) // Map field
-        case _                                      => None // Not set
+        case (v, name) if name.startsWith("default") => Some(name -> v) // For default single field
+        case (Some(v), name)                         => Some(name -> v) // Optional field is set
+        case (seq: Seq[_], name) if seq.nonEmpty     => Some(name -> seq) // Repeated field
+        case (map: Map[_, _], name) if map.nonEmpty  => Some(name -> map) // Map field
+        case _                                       => None // Not set
       }
       .toSeq
 
@@ -279,12 +293,15 @@ class GrpcClient(host: String, port: Int) extends Logger {
   def setFieldsWithConfigValues(configValues: Vector[String], message: UniversalMessage): UniversalMessage = {
     var updatedMessage: UniversalMessage = message
     for (Seq(flag, value) <- configValues.grouped(2)) {
-      print(s"flag:$flag, value:$value\n")
+      // print(s"flag:$flag, value:$value\n")
 
       val (prefix, resultFlag) = extractPrefixAndresultFlag(flag)
       // print(s"prefix: $prefix, flag: $resultFlag\n")
 
       prefix match {
+        case 'o' =>
+          updatedMessage =
+            helperSetAllOptionalIndividualFields(message = updatedMessage, flag = resultFlag, value = value)
         case 's' =>
           updatedMessage = helperSetAllIndividualFields(message = updatedMessage, flag = resultFlag, value = value)
         case 'r' =>
@@ -302,16 +319,32 @@ class GrpcClient(host: String, port: Int) extends Logger {
     updatedMessage
   }
 
-  def helperSetAllIndividualFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
+  def helperSetAllOptionalIndividualFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
     // println(s"Matching flag: '$flag' with value: '$value'")
     val result = flag match {
-      case "i"   => message.update(_.optionalSingleInt := Some(value.toInt))
-      case "bi"  => message.update(_.optionalBigInt := Some(value.toLong))
-      case "s"   => message.update(_.optionalSingleString := Some(value))
-      case "b"   => message.update(_.optionalSingleBool := Some(value.toBoolean))
-      case "d"   => message.update(_.optionalSingleDouble := Some(value.toDouble))
-      case "f"   => message.update(_.optionalSingleFloat := Some(value.toFloat))
-      case "bts" => message.update(_.optionalSingleBytes := Some(com.google.protobuf.ByteString.copyFromUtf8(value)))
+      case "i"   => message.update(_.optionalOptSingleInt := Some(value.toInt))
+      case "bi"  => message.update(_.optionalOptBigInt := Some(value.toLong))
+      case "s"   => message.update(_.optionalOptSingleString := Some(value))
+      case "b"   => message.update(_.optionalOptSingleBool := Some(value.toBoolean))
+      case "d"   => message.update(_.optionalOptSingleDouble := Some(value.toDouble))
+      case "f"   => message.update(_.optionalOptSingleFloat := Some(value.toFloat))
+      case "bts" => message.update(_.optionalOptSingleBytes := Some(com.google.protobuf.ByteString.copyFromUtf8(value)))
+      case _     => message
+    }
+    // println(s"Result after update: $result")
+    result
+  }
+
+  def helperSetAllIndividualFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
+    // println(s"Matching flag in individual: '$flag' with value: '$value'")
+    val result = flag match {
+      case "i"   => message.update(_.defaultSingleInt := value.toInt)
+      case "bi"  => message.update(_.defaultBigInt := value.toLong)
+      case "s"   => message.update(_.defaultSingleString := value)
+      case "b"   => message.update(_.defaultSingleBool := value.toBoolean)
+      case "d"   => message.update(_.defaultSingleDouble := value.toDouble)
+      case "f"   => message.update(_.defaultSingleFloat := value.toFloat)
+      case "bts" => message.update(_.defaultSingleBytes := com.google.protobuf.ByteString.copyFromUtf8(value))
       case _     => message
     }
     // println(s"Result after update: $result")
@@ -453,19 +486,22 @@ object FileIO {
         case FullMessage(msg) =>
           writer.write("Message fields:\n")
           msg.productIterator.zip(msg.productElementNames).foreach {
-            case (Some(v), name)        => writer.write(s"$name: $v\n")
-            case (seq: Seq[_], name)    => writer.write(s"$name: [${seq.mkString(", ")}]\n")
-            case (map: Map[_, _], name) => writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
-            case (None, name)           => writer.write(s"$name: <not set>\n")
-            case (_, name)              => writer.write(s"$name: \n")
+            case (Some(v), name)                => writer.write(s"$name: $v\n")
+            case (seq: Seq[_], name)            => writer.write(s"$name: [${seq.mkString(", ")}]\n")
+            case (map: Map[_, _], name)         => writer.write(s"$name: ${map.mkString("{", ", ", "}")}\n")
+            case (None, name)                   => writer.write(s"$name: <not set>\n")
+            case (v: String, name) if v.isEmpty => writer.write(s"""$name: ""\n""") // explicitly print
+            case (v, name)                      => writer.write(s"$name: $v\n") // scalar (even default)
+            case (_, name)                      => writer.write(s"$name: \n")
           }
 
         case SingleField(name, valueOpt) =>
           valueOpt match {
-            case Some(v: Seq[_])    => writer.write(s"$name: [${v.mkString(", ")}]\n")
-            case Some(v: Map[_, _]) => writer.write(s"$name: ${v.mkString("{", ", ", "}")}\n")
-            case Some(v)            => writer.write(s"$name: $v\n")
-            case None               => writer.write(s"$name: <not set>\n")
+            case Some(v: Seq[_])              => writer.write(s"$name: [${v.mkString(", ")}]\n")
+            case Some(v: Map[_, _])           => writer.write(s"$name: ${v.mkString("{", ", ", "}")}\n")
+            case Some(v: String) if v.isEmpty => writer.write(s"""$name: ""\n""") // explicit empty string
+            case Some(v)                      => writer.write(s"$name: $v\n")
+            case None                         => writer.write(s"$name: <not set>\n")
           }
 
         case SimpleString(msg) =>
@@ -491,7 +527,7 @@ object RuntimeOptionalUpdater {
     fieldName match {
       case "singleInt" =>
         value match {
-          case v: Int => Right(msg.update(_.singleInt := v))
+          case v: Int => Right(msg.update(_.optSingleInt := v))
           case _      => Left(s"Invalid type for $fieldName: ${value.getClass}")
         }
       case _ => Left(s"Unknown field: $fieldName")

@@ -71,19 +71,6 @@ services:
     depends_on:
       python-app:
         condition: service_completed_successfully
-  scala-app:
-    build: ./scala
-    container_name: scala-app
-    depends_on:
-      python-app:
-        condition: service_completed_successfully
-      proto-sync:
-        condition: service_started
-    volumes:
-      - ./scala/src/main/test:/scala-dest-test:ro
-      - ./analyzer:/app/scala/src/generated
-    environment:
-      - MAIN_CLASS=com.example.Main
 
   scala-client:
     build: ./scala

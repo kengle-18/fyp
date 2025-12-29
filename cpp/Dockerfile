@@ -53,7 +53,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /app/src/generated/ /app/src/generated
+
+COPY CMakeLists.txt .
+
+# Copy source and proto files
+COPY src/protobuf ./src/protobuf
+
+RUN mkdir -p src/generated && \
+    protoc -I=src/protobuf \
+           --cpp_out=src/generated \
+           --grpc_out=src/generated \
+           --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` \
+           --experimental_allow_proto3_optional \
+           src/protobuf/base.proto
 
 # ===========================
 # 2. Runtime stage
