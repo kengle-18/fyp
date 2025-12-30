@@ -60,32 +60,10 @@ endforeach()
 # Automatically find all .cpp files in src/utils
 file(GLOB UTILS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp")
 
-# -------------------------------
-# Main executable
-# -------------------------------
-add_executable(hello_grpc
-    src/main.cpp
-    ${UTILS_SRCS}
-    ${PROTO_GEN_SRCS}
-)
-
-target_include_directories(hello_grpc 
-    PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${GENERATED_DIR}
-)
 
 # Debug: Print available info
 message(STATUS "📌 PROTO_GEN_SRCS: ${PROTO_GEN_SRCS}")
 message(STATUS "📌 gRPC version: ${gRPC_VERSION}")
-
-# Link against system gRPC
-target_link_libraries(hello_grpc
-    PRIVATE
-    grpc++
-    grpc
-    protobuf::libprotobuf
-)
 
 # -------------------------------
 # Server executable

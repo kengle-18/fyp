@@ -145,18 +145,6 @@ services:
 
 # Host port must be different from scala-server to avoid conflicts, e.g., 50052 but the 
 # container port remains 50051 as 50051 in container A is independent of 50051 in container B
-  cpp-app:
-    build:
-      context: ./cpp
-      target: runtime
-    container_name: cpp-app
-    command: ["/app/hello_grpc"]
-    depends_on:
-      - cpp-server
-      - proto-sync
-    volumes:
-      - ./cpp/src/test:/cpp-dest-test:ro
-
   cpp-client:
     build:
       context: ./cpp
@@ -234,13 +222,25 @@ services:
   cpp-generate:
     build: 
       context: ./cpp
-      target: generate  # Use builder stage to access generated files
+      target: generate
     container_name: cpp-generate
     depends_on:
       - proto-sync
     volumes:
       - ./cpp/src/generated:/tmp/generated:rw
     command: sh -c "cp -r /app/src/generated/* /tmp/generated/ && echo '✅ Files copied'"
+
+  cpp-generate-full:
+    build: 
+      context: ./cpp
+      target: full-generate  # Use builder stage to access generated files
+    container_name: cpp-generate-full
+    depends_on:
+      - proto-sync
+    volumes:
+      - ./cpp/src/generated:/tmp/generated:rw
+    command: sh -c "cp -r /app/src/generated/* /tmp/generated/ && echo '✅ Files copied'"
+
   scala-generate:
     build:
       context: ./scala
@@ -266,6 +266,14 @@ services:
     container_name: cpp-scala-generate
     depends_on:
       - cpp-generate
+      - scala-generate
+    command: sh -c 'echo "✅ C++ and Scala generation completed with full apis"'
+
+  cpp-scala-generate-full:
+    image: "alpine:latest"
+    container_name: cpp-scala-generate-full
+    depends_on:
+      - cpp-generate-full
       - scala-generate
     command: sh -c 'echo "✅ C++ and Scala generation completed"'
 

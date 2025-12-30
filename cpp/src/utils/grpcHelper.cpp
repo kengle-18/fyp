@@ -2,6 +2,7 @@
 #include "../header/io.h"
 #include "../header/captureAllHeadersInterceptor.h"
 #include <algorithm>
+#include <google/protobuf/util/json_util.h>
 
 // ===================================
 // GreeterServiceImpl (Server-side)
@@ -61,7 +62,7 @@ grpc::Status UniversalTesterImpl::SendUniversal(grpc::ServerContext* context, co
     }
 
     std::filesystem::path cppRequestFromServer = std::filesystem::path(env ? env : ".") / (timestamp + "_" + outputFile2.filename().string());
-    FileUtils::appendToFile(cppRequestFromServer.string(), request->DebugString());
+    FileUtils::appendFullMessageWithDefaultsAsPrettyJson(cppRequestFromServer, *request);
 
     std::cout << "Done in printing header and fields in server" << std::endl;
 
@@ -127,6 +128,8 @@ void GrpcClient::sendMessage(const std::string& fieldName,
     const auto* desc = UniversalMessage::descriptor();
     const auto* field = desc->FindFieldByName(fieldName);
 
+    // std::cout << "Field name: " << field->name() << std::endl;
+
     if (!field)
         throw std::invalid_argument("Unknown field: " + fieldName);
 
@@ -146,7 +149,7 @@ void GrpcClient::sendMessage(const std::string& fieldName,
 
     if (status.ok()) {
         // std::cout << "ok" << std::endl;
-        FileUtils::appendToFile(filePath.string(),response.DebugString());
+        FileUtils::appendFullMessageWithDefaultsAsPrettyJson(filePath,response);
     } else {
         std::cerr << "RPC failed: " << status.error_message() << fieldName << "\n";
     }
@@ -193,6 +196,7 @@ bool GrpcClient::CopyRepeatedField(
     const auto* srcRefl = src.GetReflection();
     const auto* dstRefl = dst.GetReflection();
     int size = srcRefl->FieldSize(src, field);
+    // std::cout << "Size:" << size << std::endl; 
 
     for (int i = 0; i < size; ++i) {
         switch (field->cpp_type()) {
@@ -236,6 +240,14 @@ bool GrpcClient::CopySingularField(
     const auto* srcRefl = src.GetReflection();
     const auto* dstRefl = dst.GetReflection();
 
+    // std::cout << "Indiv:" << field->cpp_type() << " proto_type=" << field->type_name() << std::endl;
+
+    // for optional if set then copy else skip
+    // has_presence() can track?, false for non-optional scalar fields in proto3 and repeated fields
+    // hasField return false if optional never set, or non-optioanl scaler
+    // if (field->has_presence() && !srcRefl->HasField(src, field)) {
+    //     return true;
+    // }
     switch (field->cpp_type()) {
         case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
             dstRefl->SetInt32(&dst, field, srcRefl->GetInt32(src, field));
@@ -287,18 +299,21 @@ void GrpcClient::SendAllMessages(const UniversalMessage& message)
     std::filesystem::path cppResponseFromServer = std::filesystem::path(env ? env : ".") / (currentTimeStamp + "_" + outputFile3.filename().string());
 
     //  Full inital message to send
-    FileUtils::writeToFile(cppMessageInital.string(), message.DebugString());
+    FileUtils::writeFullMessageWithDefaultsAsPrettyJson(cppMessageInital, message);
 
     // Reponse full message from server
     UniversalMessage reply = sendUniversalWithTimestamp(message, currentTimeStamp);
-    FileUtils::writeToFile(cppResponseFromServer.string(), reply.DebugString());
+    // FileUtils::writeToFile(cppResponseFromServer.string(), reply.DebugString());
+    FileUtils::writeFullMessageWithDefaultsAsPrettyJson(cppResponseFromServer, reply);
 
-
-    FileUtils::writeToFile(cppMessageIndiviualField.string(), "");
+    if (!FileUtils::writeToFile(cppMessageIndiviualField.string(), "=== Sending individual fields ===")){
+        std::cout << "Error opening file" << std::endl;
+    }
     auto fields = GetSetFields(message);
     for (auto& [name, _] : fields) {
         GrpcClient::sendMessage(name, message, cppMessageIndiviualField, currentTimeStamp);
     }
+    FileUtils::appendToFile(cppMessageIndiviualField.string(), "=== End of individual fields ===");
 
     // Write as a full message
     // std::cout << "Sending message full " << std::endl;
@@ -384,6 +399,9 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
 
         // set singular fields
         switch (prefix) {
+            case 'o':
+                helperSetAllOptionalIndividualFields(message, flag, value);
+                break;
             case 's':
                 helperSetAllIndividualFields(message, flag, value);
                 break;
@@ -412,36 +430,71 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
     }
 }
 
+// For optional message
+void GrpcClient::helperSetAllOptionalIndividualFields(UniversalMessage& message, std::string flagToDifferiateSingularTypes, std::string value) {
+    // std::cout << flagToDifferiateSingularTypes << ": " << value << "\n";
+    
+    if (flagToDifferiateSingularTypes == "i") {
+        // std::cout << "set_set_single_int\n";
+        message.set_opt_single_int(std::stoi(value));
+    } else if (flagToDifferiateSingularTypes == "bi") {
+        // std::cout << "set_big_int\n";
+        message.set_opt_big_int(std::stol(value));
+    } else if (flagToDifferiateSingularTypes == "s") {
+        // std::cout << "set_single_string\n";
+        message.set_opt_single_string(value);
+    } else if (flagToDifferiateSingularTypes == "b") {
+        // std::cout << "set_single_bool\n";
+        if (value == "true"){
+            message.set_opt_single_bool(true);
+        }
+        else if (value == "false"){
+            message.set_opt_single_bool(false);
+        }
+    } else if (flagToDifferiateSingularTypes == "d") {
+        // std::cout << "set_single_double\n";
+        message.set_opt_single_double(std::stod(value));
+    } else if (flagToDifferiateSingularTypes == "f") {
+        // std::cout << "set_single_float\n";
+        message.set_opt_single_float(std::stof(value));
+    } else if (flagToDifferiateSingularTypes == "bts") {
+        // std::cout << "set_single_bytes\n";
+        message.set_opt_single_bytes(value);
+    } else {
+        std::cerr << "Unknown flag type: " << flagToDifferiateSingularTypes << "\n";
+    }
+}
+
 // For setting individual fields
 void GrpcClient::helperSetAllIndividualFields(UniversalMessage& message, std::string flagToDifferiateSingularTypes, std::string value) {
     // std::cout << flagToDifferiateSingularTypes << ": " << value << "\n";
     
     if (flagToDifferiateSingularTypes == "i") {
         // std::cout << "set_set_single_int\n";
-        message.set_single_int(std::stoi(value));
+        message.set_default_single_int(std::stoi(value));
     } else if (flagToDifferiateSingularTypes == "bi") {
         // std::cout << "set_big_int\n";
-        message.set_big_int(std::stol(value));
+        message.set_default_big_int(std::stol(value));
     } else if (flagToDifferiateSingularTypes == "s") {
         // std::cout << "set_single_string\n";
-        message.set_single_string(value);
+        message.set_default_single_string(value);
     } else if (flagToDifferiateSingularTypes == "b") {
         // std::cout << "set_single_bool\n";
         if (value == "true"){
-            message.set_single_bool(true);
+            message.set_default_single_bool(true);
         }
         else if (value == "false"){
-            message.set_single_bool(false);
+            message.set_default_single_bool(false);
         }
     } else if (flagToDifferiateSingularTypes == "d") {
         // std::cout << "set_single_double\n";
-        message.set_single_double(std::stod(value));
+        message.set_default_single_double(std::stod(value));
     } else if (flagToDifferiateSingularTypes == "f") {
         // std::cout << "set_single_float\n";
-        message.set_single_float(std::stof(value));
+        message.set_default_single_float(std::stof(value));
     } else if (flagToDifferiateSingularTypes == "bts") {
         // std::cout << "set_single_bytes\n";
-        message.set_single_bytes(value);
+        message.set_default_single_bytes(value);
     } else {
         std::cerr << "Unknown flag type: " << flagToDifferiateSingularTypes << "\n";
     }
