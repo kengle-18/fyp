@@ -18,10 +18,13 @@ services:
       interval: 5s
       retries: 3
       timeout: 1s
-  python-app2:
-    build: ./python
-    container_name: python-app2
-    command: test.py
+  python-decode:
+    image: python:3.11-slim
+    container_name: python-decodeBase64
+    working_dir: /app
+    volumes:
+      - ./python/src/decodeBase64.py:/app/decodeBase64.py
+    entrypoint: ["python", "decodeBase64.py"]
   python-filemanager:
     build: ./python
     container_name: python-filemanager
@@ -31,6 +34,18 @@ services:
     environment:
       - ANALYZER_DIR=/app/src/analyzer
       - STATUSFILE=done.txt
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os,sys; d=os.getenv('ANALYZER_DIR','/app/src/analyzer'); sys.exit(0 if os.path.isdir(d) else 1)"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
   python-remove-analyzer:
     build: ./python
     container_name: python-remove-analyzer
@@ -110,7 +125,7 @@ services:
       proto-sync:
         condition: service_started
       python-filemanager:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "50051:50051"
     volumes:
@@ -186,7 +201,7 @@ services:
       proto-sync:
         condition: service_started
       python-filemanager:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "50052:50051"  # Map to different host port to avoid conflict with Scala
     volumes:
