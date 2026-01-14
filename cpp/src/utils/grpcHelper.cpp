@@ -374,6 +374,7 @@ GrpcClient::GetSetFields(const UniversalMessage& message)
         if (field->is_repeated() || field->is_map()) {
             if (refl->FieldSize(message, field) > 0)
                 out.emplace_back(field->name(), field);
+        // if soemthing is set but default value in scaler is not set explicilty
         } else if (refl->HasField(message, field)) {
             out.emplace_back(field->name(), field);
         }
