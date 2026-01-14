@@ -18,10 +18,13 @@ services:
       interval: 5s
       retries: 3
       timeout: 1s
-  python-app2:
-    build: ./python
-    container_name: python-app2
-    command: test.py
+  python-decode:
+    image: python:3.11-slim
+    container_name: python-decodeBase64
+    working_dir: /app
+    volumes:
+      - ./python/src/decodeBase64.py:/app/decodeBase64.py
+    entrypoint: ["python", "decodeBase64.py"]
   python-filemanager:
     build: ./python
     container_name: python-filemanager
@@ -31,6 +34,18 @@ services:
     environment:
       - ANALYZER_DIR=/app/src/analyzer
       - STATUSFILE=done.txt
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os,sys; d=os.getenv('ANALYZER_DIR','/app/src/analyzer'); sys.exit(0 if os.path.isdir(d) else 1)"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
   python-remove-analyzer:
     build: ./python
     container_name: python-remove-analyzer
@@ -71,19 +86,6 @@ services:
     depends_on:
       python-app:
         condition: service_completed_successfully
-  scala-app:
-    build: ./scala
-    container_name: scala-app
-    depends_on:
-      python-app:
-        condition: service_completed_successfully
-      proto-sync:
-        condition: service_started
-    volumes:
-      - ./scala/src/main/test:/scala-dest-test:ro
-      - ./analyzer:/app/scala/src/generated
-    environment:
-      - MAIN_CLASS=com.example.Main
 
   scala-client:
     build: ./scala
@@ -123,7 +125,7 @@ services:
       proto-sync:
         condition: service_started
       python-filemanager:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "50051:50051"
     volumes:
@@ -158,18 +160,6 @@ services:
 
 # Host port must be different from scala-server to avoid conflicts, e.g., 50052 but the 
 # container port remains 50051 as 50051 in container A is independent of 50051 in container B
-  cpp-app:
-    build:
-      context: ./cpp
-      target: runtime
-    container_name: cpp-app
-    command: ["/app/hello_grpc"]
-    depends_on:
-      - cpp-server
-      - proto-sync
-    volumes:
-      - ./cpp/src/test:/cpp-dest-test:ro
-
   cpp-client:
     build:
       context: ./cpp
@@ -190,7 +180,7 @@ services:
         condition: service_healthy
     volumes:
       - ./cpp/src/test:/cpp-dest-test:ro
-      - ./cpp/src/generated:/app/src/generated
+      # - ./cpp/src/generated:/app/src/generated
       - ./analyzer:/app/cpp/src
     restart: on-failure  # Restart client if it fails
     
@@ -211,7 +201,7 @@ services:
       proto-sync:
         condition: service_started
       python-filemanager:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "50052:50051"  # Map to different host port to avoid conflict with Scala
     volumes:
@@ -247,21 +237,29 @@ services:
   cpp-generate:
     build: 
       context: ./cpp
-      target: builder  # Use builder stage to access generated files
+      target: generate
     container_name: cpp-generate
     depends_on:
       - proto-sync
     volumes:
       - ./cpp/src/generated:/tmp/generated:rw
-    command: |
-      sh -c "
-        mkdir -p /tmp/generated
-        cp -r /app/src/generated/* /tmp/generated/
-      "
+    command: sh -c "cp -r /app/src/generated/* /tmp/generated/ && echo '✅ Files copied'"
+
+  cpp-generate-full:
+    build: 
+      context: ./cpp
+      target: full-generate  # Use builder stage to access generated files
+    container_name: cpp-generate-full
+    depends_on:
+      - proto-sync
+    volumes:
+      - ./cpp/src/generated:/tmp/generated:rw
+    command: sh -c "cp -r /app/src/generated/* /tmp/generated/ && echo '✅ Files copied'"
+
   scala-generate:
     build:
       context: ./scala
-      target: builder
+      target: generator
     container_name: scala-generate
     depends_on:
       - proto-sync
@@ -274,12 +272,23 @@ services:
         echo "✅ ALL Generated Scala files:" ;
         find /app/target/scala-2.13/src_managed/main -name "*.scala" -type f -exec basename {} \; | sort ;
         echo "" ;
+        /bin/sh
       '
+    
+  # Generate new protobuf api 
   cpp-scala-generate:
     image: "alpine:latest"
     container_name: cpp-scala-generate
     depends_on:
       - cpp-generate
+      - scala-generate
+    command: sh -c 'echo "✅ C++ and Scala generation completed with full apis"'
+
+  cpp-scala-generate-full:
+    image: "alpine:latest"
+    container_name: cpp-scala-generate-full
+    depends_on:
+      - cpp-generate-full
       - scala-generate
     command: sh -c 'echo "✅ C++ and Scala generation completed"'
 

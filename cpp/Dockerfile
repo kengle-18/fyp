@@ -44,6 +44,42 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 RUN --mount=type=cache,target=/root/.ccache \
     cmake --build build --config Release -j$(nproc)
 
+# For debug only the generated file
+FROM ubuntu:22.04 AS generate
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    protobuf-compiler-grpc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY CMakeLists.txt .
+
+# Copy source and proto files
+COPY src/protobuf ./src/protobuf
+
+RUN mkdir -p src/generated && \
+    protoc -I=src/protobuf \
+           --cpp_out=src/generated \
+           --grpc_out=src/generated \
+           --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` \
+           --experimental_allow_proto3_optional \
+           src/protobuf/base.proto
+
+
+# Full generate 
+FROM ubuntu:22.04 AS full-generate
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    protobuf-compiler-grpc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=builder /app/src/generated/ /app/src/generated
+
+
+
 # ===========================
 # 2. Runtime stage
 # ===========================
@@ -61,15 +97,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
-
 # Copy only final executable
-COPY --from=builder /app/build/hello_grpc /app/hello_grpc
 COPY --from=builder /app/build/server /app/server
 COPY --from=builder /app/build/client /app/client
 
 # Permissions
-RUN chmod +x /app/hello_grpc /app/server /app/client && \
-    chown appuser:appuser /app/hello_grpc /app/server /app/client
+RUN chmod +x /app/server /app/client && \
+    chown appuser:appuser /app/server /app/client
 
 # Optional: add /app to PATH so you can run "server" instead of "/app/server"
 ENV PATH="/app:$PATH"

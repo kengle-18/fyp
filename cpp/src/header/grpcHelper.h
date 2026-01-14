@@ -65,6 +65,8 @@ public:
 
     void setFieldsWithConfigValues(std::vector<std::string>, UniversalMessage& message);
 
+    void helperSetAllOptionalIndividualFields(UniversalMessage& message, std::string flag, std::string value);
+
     void helperSetAllIndividualFields(UniversalMessage& message, std::string flag, std::string value);
 
     void helperSetAllRepeatedFields(UniversalMessage& message, std::string flag, std::string value);
