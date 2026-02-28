@@ -322,7 +322,7 @@ class GrpcClient(host: String, port: Int) extends Logger {
   def helperSetAllOptionalIndividualFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
     // println(s"Matching flag: '$flag' with value: '$value'")
     val result = flag match {
-      case "i"   => message.update(_.optionalOptSingleInt := Some(value.toInt))
+      case "i"   => message.update(_.optionalOptSingleInt := Some(value.toLong.toInt))
       case "bi"  => message.update(_.optionalOptBigInt := Some(value.toLong))
       case "s"   => message.update(_.optionalOptSingleString := Some(value))
       case "b"   => message.update(_.optionalOptSingleBool := Some(value.toBoolean))
@@ -338,7 +338,7 @@ class GrpcClient(host: String, port: Int) extends Logger {
   def helperSetAllIndividualFields(message: UniversalMessage, flag: String, value: String): UniversalMessage = {
     // println(s"Matching flag in individual: '$flag' with value: '$value'")
     val result = flag match {
-      case "i"   => message.update(_.defaultSingleInt := value.toInt)
+      case "i"   => message.update(_.defaultSingleInt := value.toLong.toInt)
       case "bi"  => message.update(_.defaultBigInt := value.toLong)
       case "s"   => message.update(_.defaultSingleString := value)
       case "b"   => message.update(_.defaultSingleBool := value.toBoolean)

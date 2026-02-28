@@ -437,7 +437,7 @@ void GrpcClient::helperSetAllOptionalIndividualFields(UniversalMessage& message,
     
     if (flagToDifferiateSingularTypes == "i") {
         // std::cout << "set_set_single_int\n";
-        message.set_opt_single_int(std::stoi(value));
+        message.set_opt_single_int(static_cast<int>(std::stoll(value)));
     } else if (flagToDifferiateSingularTypes == "bi") {
         // std::cout << "set_big_int\n";
         message.set_opt_big_int(std::stol(value));
@@ -472,7 +472,7 @@ void GrpcClient::helperSetAllIndividualFields(UniversalMessage& message, std::st
     
     if (flagToDifferiateSingularTypes == "i") {
         // std::cout << "set_set_single_int\n";
-        message.set_default_single_int(std::stoi(value));
+        message.set_default_single_int(static_cast<int>(std::stoll(value)));
     } else if (flagToDifferiateSingularTypes == "bi") {
         // std::cout << "set_big_int\n";
         message.set_default_big_int(std::stol(value));

@@ -25,6 +25,13 @@ services:
     volumes:
       - ./python/src/decodeBase64.py:/app/decodeBase64.py
     entrypoint: ["python", "decodeBase64.py"]
+  python-decode-utf8:
+    image: python:3.11-slim
+    container_name: python-decodeUtf8
+    working_dir: /app
+    volumes:
+      - ./python/src/decodeUtf8.py:/app/decodeUtf8.py
+    entrypoint: ["python", "decodeUtf8.py"]
   python-filemanager:
     build: ./python
     container_name: python-filemanager
