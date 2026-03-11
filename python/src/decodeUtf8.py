@@ -4,7 +4,7 @@ import sys
 if len(sys.argv) > 1:
     data = sys.argv[1]
 else:
-    print("Error: Provide utf9 string as argument")
+    print("Error: Provide utf8 string as argument")
     exit(1)
 try:
     # Decode backslash escape sequences (like \344)

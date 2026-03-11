@@ -18,7 +18,7 @@ services:
       interval: 5s
       retries: 3
       timeout: 1s
-  python-decode:
+  python-decode-base64:
     image: python:3.11-slim
     container_name: python-decodeBase64
     working_dir: /app
@@ -32,6 +32,14 @@ services:
     volumes:
       - ./python/src/decodeUtf8.py:/app/decodeUtf8.py
     entrypoint: ["python", "decodeUtf8.py"]
+  python-decode-hex:
+    image: python:3.11-slim
+    container_name: python-decodeHex
+    working_dir: /app
+    volumes:
+      - ./python/src/decodeHex.py:/app/decodeHex.py
+    entrypoint: ["python", "decodeHex.py"]
+
   python-decode-protobuf:
     image: python:3.11-slim
     container_name: python-decodeProtobuf
