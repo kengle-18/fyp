@@ -32,13 +32,13 @@ services:
     volumes:
       - ./python/src/decodeUtf8.py:/app/decodeUtf8.py
     entrypoint: ["python", "decodeUtf8.py"]
-  python-decode-hex:
+  python-decode-protobuf:
     image: python:3.11-slim
-    container_name: python-decodeHex
+    container_name: python-decodeProtobuf
     working_dir: /app
     volumes:
-      - ./python/src/decodeHex.py:/app/decodeHex.py
-    entrypoint: ["python", "decodeHex.py"]
+      - ./python/src/decodeProtobuf.py:/app/decodeProtobuf.py
+    entrypoint: ["python", "decodeProtobuf.py"]
   python-filemanager:
     build: ./python
     container_name: python-filemanager
