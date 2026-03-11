@@ -300,6 +300,7 @@ void GrpcClient::SendAllMessages(const UniversalMessage& message)
 
     //  Full inital message to send
     FileUtils::writeFullMessageWithDefaultsAsPrettyJson(cppMessageInital, message);
+    FileUtils::appendToFile(cppMessageInital, "Debug String\n" + message.DebugString() + "End Debug String");
 
     // Reponse full message from server
     UniversalMessage reply = sendUniversalWithTimestamp(message, currentTimeStamp);
