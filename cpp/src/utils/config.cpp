@@ -68,7 +68,11 @@ std::vector<std::vector<std::string>> Config::getAllArgsInLine() const {
         std::string token;
 
         while (iss >> std::quoted(token)) {
-            tokens.push_back(token);
+            if (token.empty()) {
+                tokens.push_back("\"\""); // store explicitly as ""
+            } else {
+                tokens.push_back(token);
+            }
         }
 
         allLines.push_back(std::move(tokens));

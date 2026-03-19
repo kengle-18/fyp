@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
 
     // std::cout << "Command-line Arguments:\n";
     for (size_t line = 0; line < allArgs.size(); ++line) {
-        // std::cout << "Line " << line << ": " << std::endl;
+        std::cout << "Line " << line << ": " << std::endl;
         client.setFieldsWithConfigValues(allArgs[line], msg);
         client.SendAllMessages(msg);
     }

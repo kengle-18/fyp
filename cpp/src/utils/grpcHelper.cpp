@@ -388,7 +388,7 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
         std::string& flag = configValues[i];
         const std::string& value = configValues[i + 1];
 
-        // std::cout << "flag: " << flag << ", Value: " << value << "\n";
+        std::cout << "flag: " << flag << ", Value: " << value << "\n";
 
         std::vector<char> chars = extractCharsFromFlag(flag);
         char prefix = chars[0];
@@ -425,9 +425,9 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
                 break;
         }
 
-        if (value.empty()){
-            std::cout << "Empty value for flag: " << flag << ", skipping to set the value\n";
-        }
+        // if (value.empty()){
+        //     std::cout << "Empty value for flag: " << flag << ", skipping to set the value\n";
+        // }
         // std::cout << message.DebugString() << std::endl;
     }
 }
