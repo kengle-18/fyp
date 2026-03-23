@@ -300,6 +300,7 @@ void GrpcClient::SendAllMessages(const UniversalMessage& message)
 
     //  Full inital message to send
     FileUtils::writeFullMessageWithDefaultsAsPrettyJson(cppMessageInital, message);
+    FileUtils::appendToFile(cppMessageInital, "Debug String\n" + message.DebugString() + "End Debug String");
 
     // Reponse full message from server
     UniversalMessage reply = sendUniversalWithTimestamp(message, currentTimeStamp);
@@ -387,7 +388,7 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
         std::string& flag = configValues[i];
         const std::string& value = configValues[i + 1];
 
-        // std::cout << "flag: " << flag << ", Value: " << value << "\n";
+        std::cout << "flag: " << flag << ", Value: " << value << "\n";
 
         std::vector<char> chars = extractCharsFromFlag(flag);
         char prefix = chars[0];
@@ -424,9 +425,9 @@ void GrpcClient::setFieldsWithConfigValues(std::vector<std::string> configValues
                 break;
         }
 
-        if (value.empty()){
-            std::cout << "Empty value for flag: " << flag << ", skipping to set the value\n";
-        }
+        // if (value.empty()){
+        //     std::cout << "Empty value for flag: " << flag << ", skipping to set the value\n";
+        // }
         // std::cout << message.DebugString() << std::endl;
     }
 }
@@ -437,7 +438,7 @@ void GrpcClient::helperSetAllOptionalIndividualFields(UniversalMessage& message,
     
     if (flagToDifferiateSingularTypes == "i") {
         // std::cout << "set_set_single_int\n";
-        message.set_opt_single_int(std::stoi(value));
+        message.set_opt_single_int(static_cast<int>(std::stoll(value)));
     } else if (flagToDifferiateSingularTypes == "bi") {
         // std::cout << "set_big_int\n";
         message.set_opt_big_int(std::stol(value));
@@ -472,7 +473,7 @@ void GrpcClient::helperSetAllIndividualFields(UniversalMessage& message, std::st
     
     if (flagToDifferiateSingularTypes == "i") {
         // std::cout << "set_set_single_int\n";
-        message.set_default_single_int(std::stoi(value));
+        message.set_default_single_int(static_cast<int>(std::stoll(value)));
     } else if (flagToDifferiateSingularTypes == "bi") {
         // std::cout << "set_big_int\n";
         message.set_default_big_int(std::stol(value));
