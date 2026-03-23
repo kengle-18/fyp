@@ -4,3 +4,4 @@
 --oi 7 --obi 123456789 --os hellos --ob true --od 3.14 --of 2.718 --obts bytes1
 --ri 3 --ri 5 --rs gg2 --rb false --rd 1.11 --rf 2.21 --rbi 9900000000 --rbts letsgo?
 --si 7 --sbi 123456789 --ss hellos --sb true --sd 3.14 --sf 2.718 --sbts bytes1
+--rbts Hello世界_🚀 --rbts Hello1世界_🚀 --obts 2世界_🚀 --sbts 3世界_🚀
